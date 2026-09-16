@@ -235,8 +235,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.152.1/three.min.js"></script>
 <script>
 /* =====================================================================
-   LE RÉCIF — moteur toon "dessin animé" (three.js + shaders maison)
-   Un seul fichier : rendu, monde procédural, gameplay, son.
+   THE REEF — a hand-written "animated film" renderer (three.js + own shaders)
+   One file: rendering, procedural world, gameplay, sound.
    ===================================================================== */
 (function () {
   'use strict';
@@ -245,22 +245,22 @@
   var loaderEl = $('#loader');
 
   /* ==================================================================
-     LANGUES
+       LANGUAGES
 
-     Chaque entrée est une paire [français, anglais] sur une seule ligne :
-     les deux versions se lisent côte à côte, donc une traduction qui
-     dérive de son original se voit. `{x}` marque un trou à remplir.
+       Every entry is a [French, English] pair on a single line: the two
+       versions read side by side, so a translation that drifts from its
+       original shows up. `{x}` marks a hole to fill in.
 
-     `LANG.i` indexe la paire. Tout passe par `T()`, y compris le
-     français : sans ça, la langue par défaut se met à diverger du
-     dictionnaire dès la première retouche.
-     ================================================================== */
+       `LANG.i` indexes the pair. Everything goes through `T()`, French
+       included: without that, the default language starts drifting from the
+       dictionary the first time anyone edits it.
+       ================================================================== */
   var TXT = {
-    // ---- écrans ----
+    // ---- screens ----
     'ui.title':        ['Le Récif', 'The Reef'],
     'ui.subtitle':     ['UNE BALADE ANIMÉE', 'AN ANIMATED STROLL'],
-    'ui.lead':         ['Tu es un petit poisson-clown. Le récif est plein d’habitants qui ont besoin d’un coup de nageoire&nbsp;: parle-leur, rends-leur service, et méfie-toi des méduses et des requins du tombant.',
-                        'You are a small clownfish. The reef is full of neighbours who could use a fin: talk to them, lend a hand, and watch out for the jellyfish and the sharks out by the drop-off.'],
+    'ui.lead':         ['Tu es un petit poisson-clown. Le récif est plein d’habitants qui ont besoin d’un coup de nageoire&nbsp;: parle-leur, rends-leur service, et méfie-toi des méduses et des requins.',
+                        'You are a small clownfish. The reef is full of neighbours who could use a fin: talk to them, lend a hand, and watch out for the jellyfish and the sharks.'],
     'ui.dive':         ['Plonger', 'Dive in'],
     'ui.mouseTip':     ['Clique dans l’image pour capturer la souris • <kbd>Échap</kbd> pour la libérer',
                         'Click the picture to capture the mouse • <kbd>Esc</kbd> to release it'],
@@ -276,7 +276,7 @@
                         'Could not load three.js.<br>Check your internet connection, then reload the page.'],
     'ui.crash':        ['Oups, le récif n’a pas démarré :', 'Oops, the reef did not start:'],
 
-    // ---- commandes (l'ordre des touches change : ZQSD d'abord en français) ----
+    // ---- controls (key order changes: ZQSD first in French) ----
     'keys.move':   ['<kbd>Z Q S D</kbd>ou<kbd>W A S D</kbd>nager', '<kbd>W A S D</kbd>or<kbd>Z Q S D</kbd>swim'],
     'keys.look':   ['<kbd>Souris</kbd>regarder', '<kbd>Mouse</kbd>look around'],
     'keys.dash':   ['<kbd>Maj</kbd>accélérer', '<kbd>Shift</kbd>sprint'],
@@ -286,13 +286,13 @@
     'keys.journal':['<kbd>J</kbd>journal', '<kbd>J</kbd>journal'],
     'keys.pause':  ['<kbd>P</kbd>pause', '<kbd>P</kbd>pause'],
 
-    // ---- interface de jeu ----
+    // ---- in-game interface ----
     'hud.quests':      ['/ {n} quêtes', '/ {n} quests'],
     'hud.journal':     ['Journal', 'Journal'],
     'hud.promptIdle':  ['<kbd>E</kbd> parler', '<kbd>E</kbd> talk'],
     'hud.sound':       ['Son', 'Sound'],
     'hud.qualityTip':  ['Qualité du rendu', 'Rendering quality'],
-    // (l'espace insécable avant « : » est une règle française, pas anglaise)
+    // (the non-breaking space before a colon is a French rule, not an English one)
     'hud.quality':     ['Qualité&nbsp;: {v}', 'Quality: {v}'],
     'hud.qHigh':       ['élevée', 'high'],
     'hud.qMid':        ['moyenne', 'medium'],
@@ -308,7 +308,7 @@
     'hud.close':       ['fermer', 'close'],
     'hud.swim':        ['NAGER', 'SWIM'],
 
-    // ---- journal et objectifs ----
+    // ---- journal and objectives ----
     'jr.empty':        ['Va parler aux habitants du récif.', 'Go and talk to the reef’s neighbours.'],
     'jr.done':         ['Terminée', 'Done'],
     'jr.report':       ['Va rendre compte à {name}', 'Go and report to {name}'],
@@ -342,12 +342,12 @@
     'place.wreck':     ['l’épave', 'the wreck'],
     'place.cave':      ['la grotte', 'the cave'],
     'place.vents':     ['les sources de bulles', 'the bubble vents'],
-    'place.dropoff':   ['le tombant', 'the drop-off'],
+    'place.dropoff':   ['le creu', 'the drop-off'],
     'place.garden':    ['le jardin d’anémones', 'the anemone garden'],
 
-    // ---- les habitants ----
-    // Les noms qui sont des mots courants se traduisent (Ballon, Pêche, Perle,
-    // Pince) ; les prénoms restent tels quels dans les deux langues.
+    // ---- the inhabitants ----
+    // Names that are common words get translated (Ballon, Pêche, Perle,
+    // Pince); given names stay as they are in both languages.
     'npc.moray':    ['la murène', 'the moray'],
     'npc.tang':     ['Doria', 'Doria'],
     'npc.puffer':   ['Ballon', 'Balloon'],
@@ -358,7 +358,7 @@
     'npc.crab':     ['Pince', 'Nipper'],
     'npc.octopus':  ['Perle', 'Pearl'],
 
-    // ---- quête 1 : les perles ----
+    // ---- quest 1: the pearls ----
     'q.pearls.title': ['Les perles de nacre', 'The scattered pearls'],
     'q.pearls.obj':   ['Retrouve les perles de nacre — <b>{n} / 12</b>', 'Find the scattered pearls — <b>{n} / 12</b>'],
     'q.pearls.1':     ['Oh, un poisson-clown ! Tu tombes bien.', 'Oh, a clownfish! You come just in time.'],
@@ -367,7 +367,7 @@
     'q.pearls.d1':    ['Douze sur douze ! Le récif va scintiller à nouveau.', 'Twelve out of twelve! The reef will sparkle again.'],
     'q.pearls.d2':    ['Va voir les autres, tout le monde a besoin d’un coup de nageoire.', 'Go and see the others, everyone could use a fin.'],
 
-    // ---- quête 2 : les oursins ----
+    // ---- quest 2: the urchins ----
     'q.urchins.title':['Les oursins de {name}', '{name}’s urchins'],
     'q.urchins.obj':  ['Pousse les oursins hors du corail — <b>{n} / 3</b>', 'Push the urchins off the coral — <b>{n} / 3</b>'],
     'q.urchins.1':    ['Pff… tu vois ces oursins ? Ils se sont installés SUR mon corail.', 'Pfff… see those urchins? They have settled right ON my coral.'],
@@ -375,7 +375,7 @@
     'q.urchins.3':    ['Fonce-leur dedans, ils rouleront tout seuls !', 'Just charge into them, they will roll away on their own!'],
     'q.urchins.d1':   ['Ha ! Enfin tranquille. Merci petit.', 'Ha! Peace at last. Thanks, little one.'],
 
-    // ---- quête 3 : les coquillages ----
+    // ---- quest 3: the shells ----
     'q.shells.title': ['Les coquillages de {name}', '{name}’s shells'],
     'q.shells.obj':   ['Retrouve les coquillages dans la forêt de laminaires — <b>{n} / 5</b>', 'Find the shells in the kelp forest — <b>{n} / 5</b>'],
     'q.shells.1':     ['A… a… ATCHOUM ! Pardon. Les laminaires, ça me fait éternuer.', 'A… a… ACHOO! Sorry. Kelp makes me sneeze.'],
@@ -383,23 +383,23 @@
     'q.shells.3':     ['La forêt est au nord-ouest. Tu me les rapportes ?', 'The forest lies to the north-west. Would you bring them back to me?'],
     'q.shells.d1':    ['Mes coquillages ! Merci, merci, mer… ATCHOUM !', 'My shells! Thank you, thank you, than… ACHOO!'],
 
-    // ---- quête 4 : le bébé tortue ----
+    // ---- quest 4: the baby turtle ----
     'q.escort.title': ['Le petit de la tortue', 'The turtle’s little one'],
-    'q.escort.obj':   ['Guide le bébé tortue jusqu’au tombant', 'Guide the baby turtle to the drop-off'],
+    'q.escort.obj':   ['Guide le bébé tortue jusqu’au creu', 'Guide the baby turtle to the drop-off'],
     'q.escort.1':     ['Psst ! Tu as vu ? Un bébé tortue s’est perdu près de mon rocher.', 'Psst! Did you see? A baby turtle got lost by my rock.'],
-    'q.escort.2':     ['Sa mère l’attend au tombant, là où l’eau devient bleu nuit.', 'His mother is waiting at the drop-off, where the water turns midnight blue.'],
+    'q.escort.2':     ['Sa mère l’attend au creu, là où l’eau devient bleu nuit.', 'His mother is waiting at the drop-off, where the water turns midnight blue.'],
     'q.escort.3':     ['Nage devant lui, il te suivra. Et ne traîne pas près des requins !', 'Swim ahead of him and he will follow. And do not linger near the sharks!'],
     'q.escort.d1':    ['Il est rentré ! Tu es un chic type, petit clown.', 'He is home! You are a good sort, little clown.'],
 
-    // ---- quête 5 : se cacher ----
+    // ---- quest 5: hiding ----
     'q.hide.title':   ['Le passage du requin', 'When the shark comes by'],
     'q.hide.obj':     ['Reste caché dans une anémone — <b>{n} s</b>', 'Stay hidden in an anemone — <b>{n} s</b>'],
-    'q.hide.1':       ['Tu vois cette cicatrice ? Souvenir du tombant.', 'See this scar? A souvenir from the drop-off.'],
+    'q.hide.1':       ['Tu vois cette cicatrice ? Souvenir du creu.', 'See this scar? A souvenir from the drop-off.'],
     'q.hide.2':       ['Écoute-moi bien : quand un grand blanc rôde, on ne fuit pas. On se cache.', 'Listen carefully: when a great white is prowling, you do not flee. You hide.'],
     'q.hide.3':       ['Les anémones ne piquent pas les poissons-clowns. Va t’y blottir, et compte jusqu’à huit.', 'Anemones do not sting clownfish. Go and nestle in one, and count to eight.'],
     'q.hide.d1':      ['Parfait. Tu as la tête sur les nageoires, toi.', 'Perfect. You have got your head screwed on, you have.'],
 
-    // ---- quête 6 : le trésor ----
+    // ---- quest 6: the treasure ----
     'q.treasure.title':['Le trésor de l’épave', 'The treasure in the wreck'],
     'q.treasure.find': ['Trouve le trésor dans l’épave', 'Find the treasure in the wreck'],
     'q.treasure.back': ['Rapporte le trésor à {name}', 'Bring the treasure back to {name}'],
@@ -408,7 +408,7 @@
     'q.treasure.3':    ['Rapporte-la-moi et je te nettoie les écailles à vie.', 'Bring it back to me and I will clean your scales for life.'],
     'q.treasure.d1':   ['Magnifique ! Allez, viens là, je te fais un brin de toilette.', 'Magnificent! Come here, let me give you a little polish.'],
 
-    // ---- quête 7 : la perle noire ----
+    // ---- quest 7: the black pearl ----
     'q.cave.title':   ['La perle de la murène', 'The moray’s pearl'],
     'q.cave.find':    ['Récupère la perle noire à la grotte', 'Fetch the black pearl from the cave'],
     'q.cave.back':    ['Rapporte la perle noire à {name}', 'Bring the black pearl back to {name}'],
@@ -417,7 +417,7 @@
     'q.cave.3':       ['Elle claque des dents mais elle est lente. Vise juste et file.', 'She snaps her teeth, but she is slow. Aim true and run.'],
     'q.cave.d1':      ['Tu l’as eue ! Je vais la garder précieusement, dans mon trou.', 'You got it! I shall keep it safe, down in my hole.'],
 
-    // ---- quête 8 : le recensement ----
+    // ---- quest 8: the census ----
     'q.census.title': ['Le recensement du récif', 'The reef census'],
     'q.census.obj':   ['Approche les habitants du récif — <b>{n} / 8</b>', 'Get close to the reef’s inhabitants — <b>{n} / 8</b>'],
     'q.census.1':     ['Clic clic ! Tu arrives à point : moi, je compte tout ce qui bouge ici.', 'Click click! Good timing: I count everything that moves around here.'],
@@ -425,11 +425,11 @@
     'q.census.3':     ['poissons, tortue, raie, méduse, pieuvre… — et reviens me dire ce que tu as vu.', 'fish, turtle, ray, jellyfish, octopus… — then come back and tell me what you saw.'],
     'q.census.d1':    ['Huit espèces ! Je note, je note. Te voilà un vrai habitant du récif.', 'Eight species! Noting it down, noting it down. You are a true reef-dweller now.'],
 
-    // ---- petites phrases quand il n'y a rien à faire ----
+    // ---- small talk for when there is nothing to do ----
     'idle.tang':     ['Tu sais nager en cercles ? Moi j’adore ! …attends, qu’est-ce que je disais ?', 'Can you swim in circles? I love it! …wait, what was I saying?'],
     'idle.idol':     ['Ce récif est immense. Enfin, pour nous.', 'This reef is enormous. For us, anyway.'],
     'idle.puffer':   ['Ne me chatouille pas, je gonfle pour un rien.', 'Do not tickle me, I puff up at the slightest thing.'],
-    'idle.star':     ['Le tombant, c’est là que tout commence et que tout finit.', 'The drop-off — that is where everything begins and everything ends.'],
+    'idle.star':     ['Le creu, c’est là que tout commence et que tout finit.', 'The drop-off — that is where everything begins and everything ends.'],
     'idle.seahorse': ['ATCHOUM ! …pardon. Les spores de laminaires.', 'ACHOO! …sorry. Kelp spores.'],
     'idle.shrimp':   ['Un petit nettoyage ? C’est gratuit pour les amis.', 'A quick clean? Free for friends.'],
     'idle.turtle':   ['J’ai une vue imprenable, d’ici.', 'I have got quite a view from up here.'],
@@ -439,12 +439,12 @@
   };
 
   var LANG = { code: 'fr', i: 0 };
-  /** Texte traduit. `v` remplit les trous `{nom}`.
-      Nommée `T` et pas `t` : `t` sert de variable locale à cinquante-trois
-      endroits du fichier (paramètre d'interpolation, temps, compteur de
-      boucle). Une fonction globale `t` y serait masquée sans un mot d'erreur
-      au moment de l'écriture — et lèverait « t is not a function » seulement
-      quand on tomberait sur la bonne branche, en jeu. */
+  /** Translated text. `v` fills the `{name}` holes.
+        Called `T` and not `t` because `t` is a local variable in fifty-three
+        places in this file (interpolation parameter, time, loop counter). A
+        global `t` would be shadowed there without a word of warning as you
+        write it — and would only throw "t is not a function" once you hit the
+        right branch, in game. */
   function T(k, v) {
     var e = TXT[k];
     var s = e ? (e[LANG.i] !== undefined ? e[LANG.i] : e[0]) : k;
@@ -452,19 +452,19 @@
     return s;
   }
 
-  /** Choix de départ : ce que le visiteur a choisi la dernière fois, sinon la
-      langue de son navigateur. `localStorage` peut lever (navigation privée,
-      cookies bloqués), et le jeu doit démarrer quand même. */
+  /** Starting choice: whatever the visitor picked last time, otherwise their
+        browser's language. `localStorage` can throw (private browsing, blocked
+        cookies), and the game has to start anyway. */
   function initLang() {
     var saved = null;
-    try { saved = localStorage.getItem('recif-lang'); } catch (e) { /* pas de stockage */ }
+    try { saved = localStorage.getItem('recif-lang'); } catch (e) { /* no storage */ }
     var code = (saved === 'fr' || saved === 'en') ? saved
       : ((navigator.language || 'en').toLowerCase().indexOf('fr') === 0 ? 'fr' : 'en');
     LANG.code = code;
     LANG.i = code === 'fr' ? 0 : 1;
   }
 
-  /** Écrit tout le texte fixe de la page. */
+  /** Writes every piece of fixed text on the page. */
   function applyI18n() {
     var n, i;
     n = document.querySelectorAll('[data-i18n]');
@@ -480,9 +480,9 @@
     if (en) en.classList.toggle('on', LANG.code === 'en');
   }
 
-  /** Change de langue en cours de partie : le texte fixe, puis tout ce que le
-      jeu fabrique lui-même — sans ça on se retrouve avec un journal français
-      dans une interface anglaise. */
+  /** Switches language mid-game: the fixed text, then everything the game
+        builds itself — without which you end up with a French journal inside an
+        English interface. */
   function setLang(code) {
     LANG.code = code;
     LANG.i = code === 'fr' ? 0 : 1;
@@ -498,9 +498,9 @@
   }
 
   initLang();
-  // Le script est en fin de <body> : toute la page existe déjà, on peut écrire
-  // son texte tout de suite — y compris celui du chargement, qui s'affiche
-  // avant que three.js soit là.
+  // The script sits at the end of <body>, so the whole page already exists
+  // and we can write its text right away — including the loading line, which
+  // shows before three.js is even there.
   applyI18n();
   loaderEl.textContent = T('ui.loading');
 
@@ -510,32 +510,32 @@
   }
 
   /* ------------------------------------------------------------------ */
-  /* Réglages                                                           */
+  /* Tunables                                                           */
   /* ------------------------------------------------------------------ */
   var CFG = {
-    WATER_Y: 54,          // hauteur de la surface
-    REEF_R: 104,          // rayon du récif jouable
+    WATER_Y: 54,          // height of the surface
+    REEF_R: 104,          // radius of the playable reef
     PEARLS: 12,
     JELLIES: 7,
     FOG_FAR: 152,
     SEED: 20260902,
     PLAYER_SPEED: 15.5,
     DASH_MULT: 2.05,
-    CURRENT: 0.55         // force du courant sur le joueur (u/s par unité de courant)
+    CURRENT: 0.55         // how hard the current pushes the player (u/s per unit of current)
   };
 
-  // Palette relevée sur les décors du film : eau turquoise saturée, roche
+  // Palette taken from the film's sets: saturated turquoise water, lavender-
   // gris-lavande, coraux saumon / magenta / violet / vert d'eau / ambre.
   var PAL = {
     sun:      0xfff1d6,
-    sky:      0x6fd6e2,   // eau près de la surface
-    mid:      0x2a92ad,   // eau à mi-distance
+    sky:      0x6fd6e2,   // water near the surface
+    mid:      0x2a92ad,   // water at middle distance
     deep:     0x0d4f73,   // eau profonde, silhouettes lointaines
-    bounce:   0xd8c39c,   // rebond de lumière sur le sable (sourd)
-    occ:      0x11293a,   // fond des creux : bleu nuit, jamais gris
+    bounce:   0xd8c39c,   // light bouncing off the sand (muted)
+    occ:      0x11293a,   // bottom of the hollows: midnight blue, never grey
     sand:     0xc3bcac,
     sandDark: 0x9c9686,
-    rock:     0x9c96a9,   // gris-lavande des étagères
+    rock:     0x9c96a9,   // lavender-grey of the shelves
     rockDark: 0x6d697f,
     coral: [
       0xf08a72, 0xff9d86, 0xe0637f, 0xc4497e, 0x9c3f78,
@@ -582,19 +582,19 @@
     return v;
   }
 
-  var DROP_ANG = -Math.PI / 2;                           // direction du tombant (-Z)
-  /** Écart angulaire absolu à un cap, dans [0, PI]. */
+  var DROP_ANG = -Math.PI / 2;                           // direction of the drop-off (-Z)
+  /** Absolute angular distance to a heading, within [0, PI]. */
   function angGap(a, b) {
     return Math.abs(((a - b + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
   }
-  /** Relief du fond sableux — utilisé par la géométrie ET par le gameplay. */
+  /** Shape of the sandy floor — used by the geometry AND by the gameplay. */
   function floorHeight(x, z) {
     var r = Math.sqrt(x * x + z * z);
     var h = fbm2(x * 0.013, z * 0.013, 4) * 4.2;         // grandes dunes
     h += fbm2(x * 0.075, z * 0.075, 2) * 0.85;           // ondulations
-    h += Math.sin(x * 0.09 + Math.cos(z * 0.06) * 2) * 0.35 * smoothstep(60, 10, r); // rides de sable
+    h += Math.sin(x * 0.09 + Math.cos(z * 0.06) * 2) * 0.35 * smoothstep(60, 10, r); // sand ripples
     h -= smoothstep(0, 46, r) * 1.6;                     // petite cuvette centrale
-    // le tombant : dans un secteur, le récif s'arrête net et plonge dans le grand bleu
+    // the drop-off: in one sector the reef stops dead and falls into the open blue
     var drop = (1 - smoothstep(0.50, 1.00, angGap(Math.atan2(z, x), DROP_ANG))) * smoothstep(70, 92, r);
     h += smoothstep(CFG.REEF_R - 20, CFG.REEF_R + 55, r) * 15 * (1 - drop);
     h -= drop * (48 + smoothstep(92, 140, r) * 45);
@@ -602,7 +602,7 @@
   }
 
   /* ------------------------------------------------------------------ */
-  /* Textures procédurales                                              */
+  /* Procedural textures                                                */
   /* ------------------------------------------------------------------ */
   function canvasTex(size, draw) {
     var c = document.createElement('canvas');
@@ -634,10 +634,10 @@
   }
 
   /* ================================================================== */
-  /* LE MOTEUR TOON                                                     */
+  /* THE TOON ENGINE                                                    */
   /* ================================================================== */
 
-  // Uniforms partagés par TOUS les matériaux (mêmes objets -> une seule MAJ)
+  // Uniforms shared by EVERY material (same objects -> one update does all)
   var U = {
     uTime:     { value: 0 },
     uSunDir:   { value: new THREE.Vector3(0.46, 0.80, 0.40).normalize() },
@@ -654,11 +654,11 @@
     uShadowMat:   { value: new THREE.Matrix4() },
     uShadowOn:    { value: 0 },
     uShadowTexel: { value: 1 / 2048 },
-    /* Le courant. `uCurrent` est la direction × la force à cet instant : toute
-       la végétation s'y penche, donc elle se penche ensemble. `uDrift` est son
-       intégrale — ce que les particules suivent. Il faut les deux : dériver
-       depuis `uTime * force` ferait téléporter les particules chaque fois que
-       la force change. */
+    /* The current. `uCurrent` is direction × strength at this instant: all the
+           vegetation leans along it, so it leans together. `uDrift` is its
+           integral — what the particles follow. Both are needed: deriving drift
+           from `uTime * strength` would teleport the particles every time the
+           strength changed. */
     uCurrent: { value: new THREE.Vector2(0.7, 0.2) },
     uDrift:   { value: new THREE.Vector2(0, 0) }
   };
@@ -683,7 +683,7 @@
     'float bandMask(float z, float c, float w){ return 1.0 - smoothstep(w*0.55, w, abs(z-c)); }',
     'float discMask(vec2 p, vec2 c, float r){ return 1.0 - smoothstep(r*0.72, r, length(p-c)); }',
 
-    // ---- caustiques : réseau de veines lumineuses, discret sur les coraux
+    // ---- caustics: a net of bright veins, discreet on the corals
     'float causticPat(vec2 p, float t){',
     '  float v = 0.0;',
     '  v += sin(p.x*1.30 + t*0.85) * sin(p.y*1.17 - t*0.63);',
@@ -702,7 +702,7 @@
     '  return c * mix(0.15, 1.0, up) * fade * uCaustics;',
     '}',
 
-    // ---- l'eau : turquoise près de la surface, bleu profond au loin
+    // ---- the water: turquoise near the surface, deep blue far away
     'vec3 waterTint(float y){',
     '  float t = smoothstep(-24.0, uWaterY*0.85, y);',
     '  return t < 0.55 ? mix(uDeepCol, uMidCol, t/0.55) : mix(uMidCol, uSkyCol, (t-0.55)/0.45);',
@@ -711,12 +711,12 @@
     'vec3 applyWater(vec3 col, vec3 wp, float dist){',
     '  float f = waterFog(dist);',
     '  float ty = min(wp.y, cameraPosition.y + 10.0);',
-    '  vec3 far = mix(waterTint(ty), uDeepCol, 0.38*f);',   // le lointain bleuit
+    '  vec3 far = mix(waterTint(ty), uDeepCol, 0.38*f);',   // distance turns blue
     '  return mix(col, far, f);',
     '}',
 
-    // ---- éclairage doux : diffuse enveloppante + ambiance hémisphérique + occlusion
-    // ---- ombre portée du soleil (4 échantillons, décalage le long de la normale)
+    // ---- soft lighting: wrapped diffuse + hemispheric ambient + occlusion
+    // ---- sun shadow (4 taps, offset along the normal)
     'uniform sampler2D tShadow; uniform mat4 uShadowMat;',
     'uniform float uShadowOn; uniform float uShadowTexel;',
     'float sunShadow(vec3 wp, vec3 N){',
@@ -748,7 +748,7 @@
     '  vec3 sky = mix(uBounceCol*0.55, uSkyCol, pow(up, 0.9));',
     '  vec3 amb = mix(uOccCol, sky, mix(0.10, 1.0, occ));',
     '  vec3 col = base * (direct*0.95 + amb*0.50);',
-    '  if(sss > 0.001){',                                    // tissus fins traversés par la lumière
+    '  if(sss > 0.001){',                                    // thin tissue with light coming through it
     '    float bt = pow(clamp(-ndl*0.5 + 0.5, 0.0, 1.0), 2.4);',
     '    col += base * uSunCol * bt * sss * mix(0.2, 1.0, occ);',
     '  }',
@@ -761,11 +761,11 @@
     '}'
   ].join('\n');
 
-  // Animation de sommets : aSway porte le profil de souplesse cuit dans la géométrie,
-  // aPhase décale chaque plante d'un massif fusionné.
-  // Animation de sommets : aSway porte le profil de souplesse cuit dans la géométrie,
-  // aPhase décale chaque plante d'un massif fusionné.
-  // uMode : 0 = végétal, 1 = nage (ondulation le long de Z), 2 = pend, 3 = ailes (raie)
+  // Vertex animation: aSway carries the softness profile baked into the geometry,
+  // aPhase offsets each plant within a merged massif.
+  // Vertex animation: aSway carries the softness profile baked into the geometry,
+  // aPhase offsets each plant within a merged massif.
+  // uMode: 0 = plant, 1 = swimming (ripple along Z), 2 = hanging, 3 = wings (ray)
   var GLSL_ANIM = [
     'attribute float aPhase; attribute float aSway;',
     'uniform float uBeat; uniform float uSwayAmp; uniform float uSwayFreq; uniform float uSwaySpeed;',
@@ -774,25 +774,25 @@
     'vec3 animate(vec3 p, vec3 origin){',
     '  float ph = aPhase + origin.x*0.29 + origin.z*0.24;',
     '  if(uMode < 0.5){',
-    /* Le courant. Avant, chaque touffe oscillait sur son propre axe X : tout
-       le récif bougeait de la même façon, et rien ne bougeait ensemble. Ici
-       trois choses se superposent :
-         — une inclinaison commune le long de `uCurrent`, avec des rafales qui
-           traversent le récif (le terme `trav`) ;
-         — une ondulation qui remonte chaque brin (`-p.y*uSwayFreq`), c'est
-           elle qui donne le mouvement fluide plutôt que rigide ;
-         — un décalage par brin tiré de sa position dans l'objet, sinon les
-           78 tentacules d'une anémone bougent comme un seul peigne. */
+    /* The current. Before, each tuft swung on its own X axis: the whole reef
+           moved the same way, and nothing moved together. Three things are
+           layered here:
+             — a shared lean along `uCurrent`, with gusts that travel across the
+               reef (the `trav` term);
+             — a ripple running up each strand (`-p.y*uSwayFreq`), which is what
+               makes the motion fluid rather than rigid;
+             — a per-strand offset taken from its position in the object, without
+               which an anemone's 78 tentacles move like a single comb. */
     '    float amp = uSwayAmp * aSway;',
     '    vec2 cur = uCurrent;',
     '    float trav = dot(origin.xz + p.xz, cur) * 0.09;',
-    /* `own` reste faible exprès. Il varie aussi LE LONG d'un brin (un brin
-       arqué se déplace en x), donc un gros coefficient faisait onduler chaque
-       tentacule en accordéon au lieu de le faire pencher. Le décalage entre
-       brins vient de `ph`, qui porte maintenant une phase par brin. */
+    /* `own` stays small on purpose. It also varies ALONG a strand (a curved
+           strand moves in x), so a large coefficient made every tentacle
+           concertina instead of lean. The offset between strands comes from
+           `ph`, which now carries a phase per strand. */
     '    float own = p.x*0.55 + p.z*0.45;',
     '    float gust = 0.60 + 0.40*sin(uBeat*0.29 - trav);',
-    // Un demi-longueur d'onde sur un brin de 5 m : il se courbe, il ne frise pas.
+    // Half a wavelength on a 5 m strand: it bends, it does not frizz.
     '    float w  = sin(uBeat + ph + own - p.y*uSwayFreq*0.42);',
     '    float w2 = sin(uBeat*1.71 + ph*1.6 + own*1.4 - p.y*uSwayFreq*0.78);',
     '    p.xz += cur * (gust * 1.25 * amp);',
@@ -847,7 +847,7 @@
       'void main(){',
       '  vec3 N = normalize(vN);',
       '  if(!gl_FrontFacing) N = -N;',
-      // micro-relief : on perturbe la normale avec du bruit dans le plan tangent
+      // micro-relief: the normal is perturbed by noise in the tangent plane
       '  if(uBump > 0.001){',
       '    vec3 t1 = normalize(cross(N, vec3(0.0, 1.0, 0.0)) + vec3(0.0008, 0.0, 0.0));',
       '    vec3 t2 = cross(N, t1);',
@@ -874,18 +874,18 @@
   }
 
   var matCount = 0;
-  var ANIMS = [];              // toutes les phases d'animation à faire avancer
-  /** Matériau du récif : éclairage doux, aucun contour (le film n'en a pas). */
+  var ANIMS = [];              // every animation phase that needs advancing
+  /** Reef material: soft lighting, no outline (the film has none). */
   function makeToonMat(opt) {
     opt = opt || {};
     var anim = {
-      /* La phase de l'animation est **accumulée**, pas recalculée depuis
-         `uTime * uSwaySpeed`. C'est le correctif de la tremblote : la cadence
-         de nage du joueur dépend de sa vitesse, donc elle change à chaque
-         image, et `sin(uTime * cadence)` faisait sauter la phase de
-         `uTime * Δcadence` d'une image à l'autre — un saut d'autant plus gros
-         que la partie durait. À l'arrêt la cadence était constante, donc le
-         poisson ondulait normalement : exactement ce qu'on observait. */
+      /* The animation phase is **accumulated**, not recomputed from
+               `uTime * uSwaySpeed`. This is the fix for the shivering: the player's
+               swim rate depends on their speed, so it changes every frame, and
+               `sin(uTime * rate)` made the phase jump by `uTime * Δrate` from one
+               frame to the next — a jump that grew with the length of the session.
+               At a standstill the rate was constant, so the fish rippled normally:
+               exactly what was being reported. */
       uBeat:      { value: 0 },
       uSwayAmp:   { value: opt.swayAmp || 0 },
       uSwayFreq:  { value: opt.swayFreq !== undefined ? opt.swayFreq : 1.1 },
@@ -919,7 +919,7 @@
       blending: opt.blending || THREE.NormalBlending
     });
     mat.name = 'reef' + (matCount++);
-    ANIMS.push(anim);          // une seule boucle fait avancer toutes les phases
+    ANIMS.push(anim);          // a single loop advances every phase
     return { mat: mat, outline: null, anim: anim, u: u };
   }
 
@@ -935,9 +935,9 @@
   }
 
   /* ------------------------------------------------------------------ */
-  /* Attributs de sommets : couleur, occlusion, souplesse               */
+  /* Vertex attributes: colour, occlusion, softness                     */
   /* ------------------------------------------------------------------ */
-  /** Garantit la présence des attributs lus par les shaders. */
+  /** Makes sure the attributes the shaders read are present. */
   function ensureAttrs(geo) {
     var n = geo.attributes.position.count, i;
     if (!geo.attributes.aColor) {
@@ -955,7 +955,7 @@
     return geo;
   }
 
-  /** Occlusion : les faces basses et les creux reçoivent moins d'ambiance. */
+  /** Occlusion: downward faces and hollows get less ambient light. */
   function occByHeight(geo, y0, y1, minOcc) {
     ensureAttrs(geo);
     var p = geo.attributes.position, a = geo.attributes.aOcc;
@@ -964,7 +964,7 @@
     }
     return geo;
   }
-  /** Occlusion entre boules qui se chevauchent (creux d'un corail en chou-fleur). */
+  /** Occlusion between overlapping spheres (hollows of a cauliflower coral). */
   function occBySpheres(geo, spheres, strength) {
     ensureAttrs(geo);
     var p = geo.attributes.position, a = geo.attributes.aOcc, v = new THREE.Vector3();
@@ -980,7 +980,7 @@
     }
     return geo;
   }
-  /** Profil de souplesse : 0 à la base, 1 à la pointe. */
+  /** Softness profile: 0 at the base, 1 at the tip. */
   function swayByHeight(geo, y0, y1, power) {
     ensureAttrs(geo);
     var p = geo.attributes.position, a = geo.attributes.aSway;
@@ -997,13 +997,13 @@
   }
 
   /* ------------------------------------------------------------------ */
-  /* Fusion de géométries (indexée) — des milliers de coraux, ~1 draw call */
+  /* Merging geometry (indexed) — thousands of corals, ~1 draw call      */
   /* ------------------------------------------------------------------ */
   var _mcol = new THREE.Color(), _nmat = new THREE.Matrix3(), _mv = new THREE.Vector3();
   /**
-   * parts : [{ geo, matrix?, color?, phase?, occ? }]
-   * Conserve/propage aColor, aOcc, aPhase, aSway et les index.
-   */
+     * parts: [{ geo, matrix?, color?, phase?, occ? }]
+     * Keeps and propagates aColor, aOcc, aPhase, aSway and the indices.
+     */
   function mergeGeos(parts) {
     var nv = 0, ni = 0, i, j, pre = [];
     for (i = 0; i < parts.length; i++) {
@@ -1037,16 +1037,16 @@
         _mv.fromBufferAttribute(N, j);
         if (m) _mv.applyMatrix3(_nmat).normalize();
         nor[o3] = _mv.x; nor[o3 + 1] = _mv.y; nor[o3 + 2] = _mv.z;
-        if (hasCol && CA) {                     // la teinte du prop MULTIPLIE le dégradé cuit
+        if (hasCol && CA) {                     // the prop's tint MULTIPLIES the baked gradient
           col[o3] = _mcol.r * CA.getX(j); col[o3 + 1] = _mcol.g * CA.getY(j); col[o3 + 2] = _mcol.b * CA.getZ(j);
         } else if (hasCol) { col[o3] = _mcol.r; col[o3 + 1] = _mcol.g; col[o3 + 2] = _mcol.b; }
         else if (CA) { col[o3] = CA.getX(j); col[o3 + 1] = CA.getY(j); col[o3 + 2] = CA.getZ(j); }
         else { col[o3] = 1; col[o3 + 1] = 1; col[o3 + 2] = 1; }
         occ[vo + j] = (OA ? OA.getX(j) : 1) * pOcc;
-        /* La phase du prop S'AJOUTE à celle déjà cuite, elle ne l'écrase pas —
-           comme la teinte, qui multiplie. Sans ça, les 130 brins d'une anémone
-           perdaient leur décalage individuel à la fusion du massif et se
-           mettaient à bouger comme un seul peigne rigide. */
+        /* The prop's phase is ADDED to the one already baked in, it does not
+                   overwrite it — just as the tint multiplies. Without this, an
+                   anemone's 130 strands lost their individual offsets when the massif
+                   was merged, and started moving like one rigid comb. */
         pha[vo + j] = pPha + (PA ? PA.getX(j) : 0);
         swy[vo + j] = SA ? SA.getX(j) : 0;
         uvs[(vo + j) * 2] = UVA ? UVA.getX(j) : 0;
@@ -1079,7 +1079,7 @@
     return m;
   }
 
-  /** Déforme une géométrie avec du bruit (aspect organique, "sculpté"). */
+  /** Warps a geometry with noise (organic, "sculpted" look). */
   function noisify(geo, amp, freq, seedOff, occStrength) {
     var p = geo.attributes.position, v = new THREE.Vector3(), s = seedOff || 0;
     ensureAttrs(geo);
@@ -1097,10 +1097,10 @@
   }
 
   /* ================================================================== */
-  /* CONSTRUCTEURS DE GÉOMÉTRIE — le récif est entièrement procédural    */
+  /* GEOMETRY BUILDERS — the reef is entirely procedural                 */
   /* ================================================================== */
 
-  /** Corps de poisson : sphère profilée, museau vers +Z, queue vers -Z. */
+  /** Fish body: a shaped sphere, snout towards +Z, tail towards -Z. */
   function fishBodyGeo(width, height, opt) {
     opt = opt || {};
     var geo = new THREE.SphereGeometry(1, opt.seg || 22, opt.seg2 || 14);
@@ -1121,7 +1121,7 @@
     return geo;
   }
 
-  /** Assombrit le pourtour d'une nageoire et éclaircit sa base. */
+  /** Darkens the rim of a fin and lightens its base. */
   function finEdge(geo, r0, r1, kRoot, kEdge) {
     ensureAttrs(geo);
     var p = geo.attributes.position, a = geo.attributes.aColor;
@@ -1133,7 +1133,7 @@
     return geo;
   }
 
-  /** Nageoire : polygone 2D extrudé. */
+  /** Fin: an extruded 2D polygon. */
   function finGeo(pts, thick) {
     var shape = new THREE.Shape();
     shape.moveTo(pts[0][0], pts[0][1]);
@@ -1146,7 +1146,7 @@
 
   /* ---------- outils communs ---------- */
   var YAXIS = new THREE.Vector3(0, 1, 0);
-  /** Éclaircit/assombrit progressivement via aColor (pointes plus claires, etc.). */
+  /** Gradually lightens/darkens through aColor (paler tips, and so on). */
   function rampColor(geo, y0, y1, k0, k1) {
     ensureAttrs(geo);
     var p = geo.attributes.position, a = geo.attributes.aColor;
@@ -1156,7 +1156,7 @@
     }
     return geo;
   }
-  /** Creuse le couvercle d'un cylindre pour former une bouche sombre (éponges). */
+  /** Hollows out the lid of a cylinder into a dark mouth (sponges). */
   function dimpleTop(geo, depth, shrink, occ) {
     ensureAttrs(geo);
     var p = geo.attributes.position, n = geo.attributes.normal, a = geo.attributes.aOcc;
@@ -1169,7 +1169,7 @@
     geo.computeVertexNormals();
     return geo;
   }
-  /** Tentacule effilé qui part d'un point vers une direction, souple à la pointe. */
+  /** A tapered tentacle growing from a point in a direction, soft at the tip. */
   function tentaclePart(pos, dir, len, r0, r1, seg) {
     var g = new THREE.ConeGeometry(r1, len, seg || 4, 1, false);
     g.translate(0, len * 0.5, 0);
@@ -1181,8 +1181,8 @@
     };
   }
 
-  /* ---------- LA forme signature : l'étagère de roche ---------- */
-  /** Plateau de roche à bord arrondi et contour irrégulier. */
+  /* ---------- THE signature shape: the rock shelf ---------- */
+  /** A rock plate with a rounded edge and a ragged outline. */
   function shelfGeo(seed, R, thick) {
     var R2 = mulberry32(seed), sd = R2() * 12, t = thick;
     var pts = [
@@ -1205,12 +1205,12 @@
       p.setXYZ(i, v.x * k, v.y + Math.sin(a * 2 + sd) * t * 0.4 * rel, v.z * k);
     }
     g.computeVertexNormals();
-    occByHeight(g, -t * 0.5, t * 0.5, 0.42);        // dessous des plateaux : sombre
+    occByHeight(g, -t * 0.5, t * 0.5, 0.42);        // underside of the plates: dark
     return g;
   }
 
   /* ---------- coraux ---------- */
-  /** Corail "chou-fleur" : amas de bosses, creux occlus. */
+  /** "Cauliflower" coral: a cluster of lumps with occluded hollows. */
   function knobCoralGeo(seed, lumps) {
     var R2 = mulberry32(seed), parts = [], spheres = [[0, 0.52, 0, 0.60]];
     lumps = lumps || 7;
@@ -1234,7 +1234,7 @@
     return out;
   }
 
-  /** Corail cerveau : sillons méandreux, fond des sillons sombre. */
+  /** Brain coral: meandering grooves, dark at the bottom of each. */
   function brainCoralGeo(seed) {
     var g = new THREE.SphereGeometry(1, 18, 13);
     var p = g.attributes.position, v = new THREE.Vector3();
@@ -1243,7 +1243,7 @@
     for (var i = 0; i < p.count; i++) {
       v.fromBufferAttribute(p, i);
       var n = fbm2(v.x * 2.2 + seed, v.z * 2.2 - seed, 3);
-      var groove = Math.sin(n * 22 + v.y * 3.5) * 0.5 + 0.5;     // sillons serrés
+      var groove = Math.sin(n * 22 + v.y * 3.5) * 0.5 + 0.5;     // tight grooves
       var d = 0.16 * n + 0.055 * (groove - 0.55);
       _v3.copy(v).normalize();
       v.addScaledVector(_v3, d);
@@ -1258,7 +1258,7 @@
     return g;
   }
 
-  /** Corail branchu trapu (acropora), extrémités claires. */
+  /** Stocky branching coral (acropora), pale tips. */
   function branchCoralGeo(seed, scale) {
     var R = mulberry32(seed), parts = [];
     function grow(pos, dir, radius, len, depth) {
@@ -1290,7 +1290,7 @@
     return g;
   }
 
-  /** Gorgone : éventail ramifié presque plat (belle silhouette de fond). */
+  /** Sea fan: a branching, almost flat fan (a fine silhouette in the distance). */
   function fanCoralGeo(seed, scale) {
     var R = mulberry32(seed), parts = [];
     function grow(pos, ang, radius, len, depth) {
@@ -1315,7 +1315,7 @@
     return g;
   }
 
-  /** Plateau frangé : la grande table à tentacules du film. */
+  /** Fringed plate: the big tentacled table from the film. */
   function fringePlateGeo(seed, R) {
     var R2 = mulberry32(seed);
     var parts = [{ geo: shelfGeo(seed + 7, R, R * 0.15) }];
@@ -1336,47 +1336,46 @@
     return g;
   }
 
-  /* ---------- LES ANÉMONES POMPONS ----------------------------------------
-     Elles étaient des pelotes d'épingles : soixante cônes à quatre faces
-     effilés en aiguille, ce qui se lit comme un oursin. Le brin de l'anémone
-     hôte (`tentacleTubeGeo`, 120 triangles) est hors de question ici — il y a
-     **698 pompons** dans le récif, soit à eux seuls un quart de toute la
-     géométrie posée (594 000 triangles, compté et pas estimé). Les leur donner
-     coûterait neuf millions de triangles.
+  /* ---------- THE POMPOM ANEMONES ------------------------------------------
+       They were pincushions: sixty four-sided cones tapering to a needle, which
+       reads as a sea urchin. The host anemone's strand (`tentacleTubeGeo`, 120
+       triangles) is out of the question here — there are **698 pompoms** in the
+       reef, a quarter of all the geometry placed (594,000 triangles, counted
+       rather than guessed). Giving them that strand would cost nine million.
 
-     Le compromis tient en une observation : ce qui trahit l'aiguille, c'est la
-     pointe, pas le nombre de brins. Un tube à cinq faces dont seuls les 20
-     derniers pour cent se referment coûte 20 triangles au lieu de 8 — mais on
-     peut alors se contenter de deux fois moins de brins, plus gros, et le
-     pompon est **plus** ressemblant pour le même prix. Vérifié après coup sur
-     le total du décor.
-     ----------------------------------------------------------------------- */
+       The compromise rests on one observation: what gives away a needle is the
+       tip, not the number of strands. A tube whose last fifth is the only part
+       that closes costs 36 triangles instead of 8 — but you can then make do
+       with a third as many strands, fatter and shorter, and the pompom looks
+       **more** like an anemone for the same price. Checked afterwards against
+       the total for the scenery.
+       ------------------------------------------------------------------------- */
 
-  /* Les quatre anneaux du brin, placés à la main. Deux tombent dans la calotte
-     (0,86 et 1,0), et c'est tout l'objet de l'exercice : avec un seul anneau au
-     bout, six faces convergeant vers un point font six grands triangles qui
-     accrochent la lumière chacun à leur façon — on voyait des pointes de
-     cristal taillées, et changer la couleur ou le nombre de faces n'y faisait
-     rien. Le rayon remonte avant de retomber, ce qui donne le doigt. */
+  /* The strand's four rings, placed by hand. Two of them fall inside the cap
+       (0.86 and 1.0), and that is the whole point of the exercise: with a single
+       ring at the tip, six faces converging on a point make six large triangles
+       that each catch the light their own way — you saw cut crystal, and
+       changing the colour or the number of faces did nothing about it. The
+       radius swells before it falls away, which is what makes it a finger. */
   var POM_T = [0, 0.52, 0.86, 1.00];
   var POM_R = [0.86, 1.06, 0.80, 0.00];
 
-  /** Brin de pompon : tube court à six faces, à bout mat. */
+  /** Pompom strand: a short six-sided tube with a blunt end. */
   function pomTentacleGeo(pos, dir, len, r) {
-    /* 6 faces × 3 segments = 36 triangles, sans couvercles : la base est
-       enfouie dans le dôme, et un couvercle inutile coûterait 6 triangles
-       × 22 brins × 698 pompons. */
+    /* 6 faces × 3 segments = 36 triangles, no caps: the base is buried in the
+           dome, and a useless cap would cost 6 triangles × 22 strands × 698
+           pompoms. */
     var g = new THREE.CylinderGeometry(1, 1, len, 6, 3, true);
     ensureAttrs(g);
     var p = g.attributes.position, sw = g.attributes.aSway, ac = g.attributes.aColor;
     for (var i = 0; i < p.count; i++) {
       var x = p.getX(i), y = p.getY(i), z = p.getZ(i);
-      // les anneaux d'un cylindre à 3 segments tombent exactement sur 0, ⅓, ⅔, 1
+      // the rings of a 3-segment cylinder land exactly on 0, ⅓, ⅔, 1
       var ring = Math.round(clamp((y + len * 0.5) / len, 0, 1) * 3);
       var t = POM_T[ring], rr2 = r * POM_R[ring];
       p.setXYZ(i, x * rr2, (t - 0.5) * len, z * rr2);
-      sw.setX(i, 0.55 * Math.pow(t, 1.3));    // trapu : il ondule sans mollir
-      var k = 0.80 + 0.46 * t;                 // pointe plus claire
+      sw.setX(i, 0.55 * Math.pow(t, 1.3));    // stocky: it sways without going limp
+      var k = 0.80 + 0.46 * t;                 // paler tip
       ac.setXYZ(i, k, k, k);
     }
     g.computeVertexNormals();
@@ -1388,63 +1387,64 @@
     };
   }
 
-  /** Anémone pompon : dôme couvert de brins courts et gras. */
+  /** Pompom anemone: a dome covered in short, fat strands. */
   function pomAnemoneGeo(seed, R, count) {
     var R2 = mulberry32(seed), parts = [];
-    /* Dôme réduit (7×4 au lieu de 10×7, et 0,50 R au lieu de 0,58) : ce sont les
-       brins qui doivent faire la touffe, pas le socle. Il en dépassait un crâne
-       chauve au milieu, et les 84 triangles rendus ici paient les brins. */
+    /* Smaller dome (7×4 instead of 10×7, and 0.50 R instead of 0.58): it is
+           the strands that should make the tuft, not the base. A bald patch was
+           showing through the middle, and the 84 triangles saved here pay for the
+           strands. */
     var base = new THREE.SphereGeometry(R * 0.50, 7, 4, 0, TAU, 0, Math.PI * 0.6);
     base.scale(1, 0.82, 1);
     parts.push({ geo: base, matrix: TRS(0, R * 0.26, 0) });
     count = count || 30;
     for (var i = 0; i < count; i++) {
-      // biaisés vers le haut : répartis sur toute la demi-sphère, ils laissaient
-      // le sommet du dôme nu et la bête se lisait comme une boule à piquants
+      // biased upwards: spread over the whole hemisphere they left the top of
+      // the dome bare, and the creature read as a spiky ball
       var a = R2() * TAU, b = Math.acos(1 - R2() * 0.80);
       var dir = new THREE.Vector3(Math.sin(b) * Math.cos(a), Math.cos(b) * 1.15, Math.sin(b) * Math.sin(a)).normalize();
-      /* Trapus : environ cinq fois leur largeur. Le cône de pointe ne fait que
-         les 18 derniers pour cent, donc plus le brin est court, plus son bout
-         est franc — c'est ce rapport, et pas le nombre de faces, qui décide
-         si on voit un doigt ou une aiguille. */
+      /* Stocky: about five times their own width. The tip cone is only the last
+               18 per cent, so the shorter the strand the blunter its end — it is that
+               ratio, and not the number of faces, that decides whether you see a
+               finger or a needle. */
       var len = R * (0.42 + R2() * 0.34);
       parts.push(pomTentacleGeo(dir.clone().multiplyScalar(R * 0.40).add(new THREE.Vector3(0, R * 0.24, 0)),
                                 dir, len, R * 0.088 * (0.88 + R2() * 0.24)));
     }
     var g = mergeGeos(parts);
     occByHeight(g, 0, R * 0.8, 0.45);
-    // dégradé doux seulement : le vrai éclaircissement de pointe est déjà cuit
-    // par brin ci-dessus, et deux rampes multipliées cramaient les bouts.
+    // gentle gradient only: the real tip-lightening is already baked in per
+    // strand above, and two multiplied ramps blew out the ends.
     rampColor(g, 0, R * 1.0, 0.90, 1.06);
     return g;
   }
 
   /* ================================================================== */
-  /* L'ANÉMONE HÔTE                                                     */
+  /* THE HOST ANEMONE                                                   */
   /*                                                                    */
-  /* Celle du film est une botte de gros brins mous, serrés, presque     */
-  /* translucides à la pointe, plantés sur une colonne magenta. Elle     */
-  /* était faite ici de cônes à quatre faces effilés en pointe, plantés  */
-  /* au hasard sur une demi-sphère : de loin ça donnait un oursin, pas   */
-  /* une anémone. Trois choses ont changé.                              */
+  /* The one in the film is a bundle of fat, soft, tightly packed strands, */
+  /* almost translucent at the tip, growing from a magenta column. Here  */
+  /* it was made of four-sided cones tapering to a point, scattered at   */
+  /* random over a hemisphere: from a distance that gave a sea urchin,   */
+  /* not an anemone. Three things changed.                              */
   /*                                                                    */
-  /*   1. Le brin est un tube arqué à bout arrondi, d'épaisseur presque  */
-  /*      constante — c'est la silhouette du brin qui fait l'anémone.    */
-  /*   2. Ils partent d'un disque oral en spirale dorée, plus longs au   */
-  /*      centre et plus couchés au bord : le tas prend tout seul la     */
-  /*      forme de dôme de la référence, au lieu d'une pelote.           */
-  /*   3. Le dégradé magenta → pêche → crème est cuit le long du brin,   */
-  /*      pas selon la hauteur dans le monde : un brin couché garde donc */
-  /*      sa pointe claire.                                             */
+  /*   1. The strand is a curved tube with a rounded end, of almost      */
+  /*      constant thickness — the strand's silhouette is what makes it.  */
+  /*   2. They grow from an oral disc in a golden spiral, longer in the  */
+  /*      middle and more splayed at the rim: the mass takes on the dome */
+  /*      shape of the reference by itself, instead of a ball.           */
+  /*   3. The magenta → peach → cream gradient is baked ALONG the strand,*/
+  /*      not by height in the world: so a splayed strand keeps its pale */
+  /*      tip.                                                           */
   /* ================================================================== */
 
-  // Les trois teintes relevées sur les captures. Aucune n'est magenta : dans le
-  // film le magenta est sur la COLONNE, les brins vont du saumon à la crème.
-  // Une première version mettait du magenta à leur base et l'occlusion la
-  // tirait vers un rouge sang qui ne ressemblait à rien.
+  // The three tints taken from the screenshots. None is magenta: in the
+  // film the magenta is on the COLUMN; the strands go from salmon to cream.
+  // An early version put magenta at their base and the occlusion dragged it
+  // towards a blood red that looked like nothing at all.
   var ANEM = { base: 0xe4785f, mid: 0xffbc8e, tip: 0xfae4c6 };
 
-  /** Un brin d'anémone : tube arqué, épais, à bout arrondi. */
+  /** An anemone strand: a curved, thick tube with a rounded end. */
   function tentacleTubeGeo(len, rad, bend, seg, sides) {
     seg = seg || 10;
     var g = new THREE.CylinderGeometry(1, 1, len, sides || 6, seg, true);
@@ -1456,52 +1456,52 @@
     for (var i = 0; i < p.count; i++) {
       var x = p.getX(i), y = p.getY(i), z = p.getZ(i);
       var u = clamp((y + len * 0.5) / len, 0, 1);
-      /* Les anneaux d'un cylindre sont répartis uniformément, et c'est ce qui
-         ratait le bout arrondi : avec la calotte sur les 10 derniers pour cent,
-         un seul anneau tombait dedans et le tube finissait en pointe — on
-         obtenait un oursin. On resserre donc les anneaux vers la pointe
-         (`1-(1-u)^1.75`), ce qui en met quatre dans la calotte. */
+      /* A cylinder spaces its rings evenly, and that is what was spoiling the
+               rounded end: with the cap over the last 10 per cent, a single ring fell
+               inside it and the tube finished in a point — you got a sea urchin. So
+               the rings are bunched towards the tip (`1-(1-u)^1.75`), which puts four
+               of them in the cap. */
       var t = 1 - Math.pow(1 - u, 1.75);
-      // Profil : mince à l'émergence, plein très vite, léger renflement aux
-      // deux tiers, puis une vraie calotte hémisphérique sur les 12 derniers %.
+      // Profile: thin where it emerges, full very quickly, a slight swelling at
+      // two thirds, then a real hemispherical cap over the last 12%.
       var r = rad * (0.58 + 0.42 * smoothstep(0, 0.13, t)) * (1 + 0.13 * smoothstep(0.40, 0.90, t));
       if (t > 0.88) r *= Math.sqrt(Math.max(0, 1 - Math.pow((t - 0.88) / 0.12, 2)));
-      // L'arc croît en t² : le brin sort droit du disque puis se couche.
+      // The arc grows as t²: the strand leaves the disc straight, then splays.
       p.setXYZ(i, x * r + bend * len * t * t, (t - 0.5) * len, z * r);
-      /* 3,4 fois la souplesse d'une pointe de corail. `uSwayAmp` est partagé par
-         tous les props mous, et le monter globalement ferait gigoter les coraux
-         durs ; `aSway` veut justement dire « à quel point ce sommet est mou »,
-         et un brin d'anémone l'est bien plus qu'une branche. Réglé en mesurant :
-         4,4 donne ~0,9 m de course à une pointe de 5,7 m, soit 15 % de sa
-         longueur — la pointe ondule nettement, la botte reste une botte. */
+      /* 3.4 times the softness of a coral tip. `uSwayAmp` is shared by every soft
+               prop, and raising it globally would set the hard corals wobbling;
+               `aSway` means precisely "how soft is this vertex", and an anemone
+               strand is far softer than a branch. Tuned by measuring: 4.4 gives a
+               5.7 m tip about 0.9 m of travel, 15% of its length — the tip clearly
+               sways, the bundle stays a bundle. */
       sw.setX(i, 4.4 * Math.pow(t, 1.25));
       if (t < 0.26) cc.copy(c0).lerp(c1, smoothstep(0.0, 0.26, t));
-      // La bascule vers la crème est tardive : sur les captures les deux tiers
-      // hauts sont encore pêche, seul le bout pâlit vraiment.
+      // The shift to cream comes late: in the screenshots the top two thirds are
+      // still peach, only the very end really pales.
       else cc.copy(c1).lerp(c2, smoothstep(0.44, 1.0, t));
       ac.setXYZ(i, cc.r, cc.g, cc.b);
-      // le fond de la couronne reste dans l'ombre, mais chaudement : pas noir
+      // the bottom of the crown stays shaded, but warmly: not black
       ao.setX(i, 0.46 + 0.54 * smoothstep(0.03, 0.50, t));
     }
     g.computeVertexNormals();
     return g;
   }
 
-  /** Anémone hôte : la botte de brins mous où l'on habite. */
+  /** Host anemone: the bundle of soft strands we live in. */
   function hostAnemoneGeo(seed, R, count) {
     var R2 = mulberry32(seed), parts = [];
     count = count || 130;
-    var Rd = R * 0.58;              // rayon du disque oral
-    var yd = R * 0.52;              // hauteur du disque : la colonne se voit
+    var Rd = R * 0.58;              // radius of the oral disc
+    var yd = R * 0.52;              // height of the disc: the column shows
 
-    /* ---- la colonne : un tronc magenta évasé, à plis verticaux ---- */
+    /* ---- the column: a flared magenta trunk with vertical folds ---- */
     var prof = [
-      new THREE.Vector2(R * 0.58, 0),             // pied évasé sur la roche
+      new THREE.Vector2(R * 0.58, 0),             // foot flared over the rock
       new THREE.Vector2(R * 0.48, R * 0.12),
-      new THREE.Vector2(R * 0.41, R * 0.28),      // la taille
+      new THREE.Vector2(R * 0.41, R * 0.28),      // the waist
       new THREE.Vector2(R * 0.46, R * 0.42),
-      new THREE.Vector2(R * 0.58, R * 0.52),      // évasement sous les brins
-      new THREE.Vector2(R * 0.64, R * 0.565),     // la lèvre, qui dépasse
+      new THREE.Vector2(R * 0.58, R * 0.52),      // flare beneath the strands
+      new THREE.Vector2(R * 0.64, R * 0.565),     // the lip, which overhangs
       new THREE.Vector2(R * 0.57, R * 0.58)
     ];
     var col = new THREE.LatheGeometry(prof, 30);
@@ -1512,50 +1512,50 @@
     for (var k = 0; k < cp.count; k++) {
       var vx = cp.getX(k), vy = cp.getY(k), vz = cp.getZ(k);
       var ang = Math.atan2(vz, vx);
-      // plis verticaux : la colonne du film est plissée, pas lisse
+      // vertical folds: the column in the film is pleated, not smooth
       var f = 1 + Math.sin(ang * 13) * 0.045 + Math.sin(ang * 5 + 1.1) * 0.030;
       cp.setXYZ(k, vx * f, vy, vz * f);
       var h = clamp(vy / (R * 0.58), 0, 1);
       mc.copy(mag0).lerp(mag1, smoothstep(0.1, 0.9, h));
       cc2.setXYZ(k, mc.r, mc.g, mc.b);
-      /* Plancher d'occlusion haut : dans le film la colonne est VIVE, même au
-         pied. À 0,30 elle sortait presque noire sous la couronne, et on perdait
-         le seul accent saturé de la bête. */
+      /* High occlusion floor: in the film the column is VIVID, right down to the
+               foot. At 0.30 it came out almost black under the crown, and we lost the
+               creature's one saturated accent. */
       co.setX(k, 0.52 + 0.40 * h);
     }
     col.computeVertexNormals();
     parts.push({ geo: col });
 
-    /* ---- la couronne : spirale dorée sur le disque ---- */
+    /* ---- the crown: a golden spiral on the disc ---- */
     for (var i = 0; i < count; i++) {
       var fr = (i + 0.5) / count;
-      var rho = Rd * Math.sqrt(fr);                   // racine : densité uniforme
+      var rho = Rd * Math.sqrt(fr);                   // square root: even density
       var a = i * 2.399963229728653 + R2() * 0.22;    // angle d'or : jamais d'alignement
-      // Les brins du centre sont les plus longs et les plus droits, ceux du
-      // bord les plus courts et les plus couchés : d'où le dôme.
-      /* Les proportions comptent plus que le nombre : un brin du film fait
-         environ dix fois sa largeur. À vingt-quatre fois (l'essai précédent)
-         on lit des piquants, quelle que soit la couleur. Et l'écartement reste
-         faible pour que la masse reste une botte serrée, pas un feu d'artifice. */
-      /* Le dôme vient du CONTRASTE de longueur entre le centre et le bord :
-         à longueurs presque égales on obtient une brosse à plat, ce qu'on
-         avait. Ici le centre fait presque le double du bord. */
+      // The strands in the middle are the longest and the straightest, those at
+      // the rim the shortest and the most splayed: hence the dome.
+      /* Proportions matter more than numbers: a strand in the film is about ten
+               times its own width. At twenty-four times (the previous attempt) you
+               read spines, whatever the colour. And the splay stays small so the mass
+               remains a tight bundle rather than a firework. */
+      /* The dome comes from the length CONTRAST between middle and rim: with
+               near-equal lengths you get a flat brush, which is what we had. Here the
+               middle is almost twice the rim. */
       var len = R * (1.30 - 0.62 * fr) * (0.82 + R2() * 0.36);
       var bend = 0.05 + 0.36 * fr + R2() * 0.09;
       var rad = R * 0.069 * (0.88 + R2() * 0.26);
       var geo = tentacleTubeGeo(len, rad, bend, 10, 6);
       var m = new THREE.Matrix4()
         .makeTranslation(Math.cos(a) * rho, yd + R * 0.02, Math.sin(a) * rho)
-        .multiply(new THREE.Matrix4().makeRotationY(-a))     // +X local -> vers l'extérieur
+        .multiply(new THREE.Matrix4().makeRotationY(-a))     // local +X -> outwards
         .multiply(new THREE.Matrix4().makeTranslation(0, len * 0.5, 0));
       parts.push({ geo: geo, matrix: m, phase: R2() * TAU });
     }
-    // Ni rampColor ni swayByHeight ici : tout est déjà cuit par brin, et une
-    // seconde passe selon la hauteur du monde écraserait le dégradé.
+    // Neither rampColor nor swayByHeight here: everything is already baked per
+    // strand, and a second pass by world height would flatten the gradient.
     return mergeGeos(parts);
   }
 
-  /** Éponges tubulaires à bouche sombre. */
+  /** Tube sponges with dark mouths. */
   function tubeSpongeGeo(seed) {
     var R2 = mulberry32(seed), parts = [];
     var n = 2 + ((R2() * 4) | 0);
@@ -1578,7 +1578,7 @@
     return mergeGeos(parts);
   }
 
-  /** Fouet de mer : longue tige souple et incurvée. */
+  /** Sea whip: a long, soft, curving stalk. */
   function whipGeo(seed, h) {
     var R2 = mulberry32(seed);
     var pts = [];
@@ -1596,7 +1596,7 @@
     return g;
   }
 
-  /** Plateau d'algue plate (les "nénuphars" verts du film). */
+  /** Flat algae plate (the green "lily pads" from the film). */
   function padGeo(seed, R) {
     var R2 = mulberry32(seed), sd = R2() * 9;
     var g = new THREE.CylinderGeometry(R, R * 0.96, R * 0.09, 20, 1, false);
@@ -1675,7 +1675,7 @@
     return g;
   }
 
-  /** Étoile de mer. */
+  /** Starfish. */
   function starfishGeo() {
     var parts = [];
     for (var i = 0; i < 5; i++) {
@@ -1689,7 +1689,7 @@
     return mergeGeos(parts);
   }
 
-  /** Rocher / patate de corail. */
+  /** Boulder / coral head. */
   function rockGeo(seed, r) {
     var g = new THREE.SphereGeometry(r, 26, 17);
     noisify(g, r * 0.16, 1.5 / r, seed % 71, 0.9);
@@ -1699,7 +1699,7 @@
     return g;
   }
 
-  /** Pilier / tourelle de roche. */
+  /** Pillar / rock turret. */
   function pillarGeo(seed, h) {
     var R = mulberry32(seed), sd = R() * 20, parts = [];
     var g = new THREE.CylinderGeometry(0.6 + R() * 0.4, 1.9 + R() * 0.5, h, 13, 8, true);
@@ -1722,7 +1722,7 @@
     return out;
   }
 
-  /** Arche rocheuse (on peut nager dessous). */
+  /** Rock arch (you can swim under it). */
   function archGeo(seed, R, thick) {
     var g = new THREE.TorusGeometry(R, thick, 10, 26, Math.PI);
     noisify(g, thick * 0.4, 0.8, seed % 53, 0.8);
@@ -1734,7 +1734,7 @@
   /* PERSONNAGES                                                        */
   /* ================================================================== */
 
-  // Robe du poisson-clown : 3 bandes blanches bordées de noir + une à la queue
+  // Clownfish livery: 3 white bands edged in black + one at the tail
   var CLOWN_HOOK = [
     '  float z = vObj.z + 0.13*vObj.y;',
     '  float wA = bandMask(z, 0.575, 0.105) + bandMask(z, 0.015, 0.125) + bandMask(z, -0.655, 0.080) + bandMask(z, -1.07, 0.075);',
@@ -1745,11 +1745,11 @@
     '  base = mix(base, vec3(1.0,0.985,0.95), wA*0.97);'
   ].join('\n');
 
-  /** Le héros : petit poisson-clown, museau vers +Z. */
+  /** The hero: a small clownfish, snout towards +Z. */
   function buildClownfish() {
     var g = new THREE.Group();
 
-    // --- corps + nageoires médianes, tout fusionné dans l'espace du corps
+    // --- body + median fins, all merged into body space
     var parts = [{ geo: fishBodyGeo(0.335, 0.495, { belly: 0.20, arch: 0.05, head: 0.30, seg: 26, seg2: 18 }), matrix: null }];
 
     var fins = [];
@@ -1757,18 +1757,18 @@
                        [0.53, 0.0], [0.52, -0.20], [0.46, -0.33], [0.34, -0.34],
                        [0.18, -0.26], [0, -0.12]], 0.030);
     finEdge(tail, 0.30, 0.50, 1.10, 0.34);
-    tail.rotateY(Math.PI / 2);                       // le profil part vers -Z
+    tail.rotateY(Math.PI / 2);                       // the profile runs towards -Z
     fins.push({ geo: tail, matrix: TRS(0, 0.02, -0.94) });
 
     var dorsal = finGeo([[0, 0], [0.18, 0.24], [0.50, 0.38], [0.84, 0.32], [1.04, 0.04], [0.55, 0.01]], 0.028);
     finEdge(dorsal, 0.22, 0.44, 1.05, 0.34);
-    dorsal.rotateY(Math.PI / 2);                      // se dresse sur le dos
+    dorsal.rotateY(Math.PI / 2);                      // stands up on the back
     fins.push({ geo: dorsal, matrix: TRS(0, 0.40, 0.30) });
 
     var anal = finGeo([[0, 0], [0.15, 0.20], [0.38, 0.26], [0.54, 0.03], [0.30, 0.0]], 0.026);
     finEdge(anal, 0.18, 0.34, 1.05, 0.36);
     anal.rotateY(Math.PI / 2);
-    anal.rotateZ(Math.PI);                            // et celle-ci pend sous le ventre
+    anal.rotateZ(Math.PI);                            // and this one hangs under the belly
     fins.push({ geo: anal, matrix: TRS(0, -0.38, -0.34) });
 
     var bodyMat = {
@@ -1779,7 +1779,7 @@
     var body = toonMesh(mergeGeos(parts), bodyMat);
     g.add(body);
 
-    // les nageoires partagent les uniforms d'animation du corps -> même ondulation
+    // the fins share the body's animation uniforms -> the same ripple
     var finMesh = toonMesh(mergeGeos(fins), {
       color: 0xf4661f, baseHook: CLOWN_HOOK, mode: 1, fishLen: 1.0,
       rim: 0.5, spec: 0.2, sss: 0.85, opacity: 0.9, transparent: true,
@@ -1788,10 +1788,10 @@
     finMesh.renderOrder = 2;
     g.add(finMesh);
 
-    // --- nageoires pectorales (battent en JS), dont la "nageoire porte-bonheur"
+    // --- pectoral fins (flapped in JS), including the "lucky fin"
     var pectShape = finGeo([[0, 0], [0.16, 0.16], [0.32, 0.17], [0.42, 0.08],
                             [0.40, -0.06], [0.26, -0.15], [0.06, -0.11]], 0.020);
-    (function cup(g) {                              // on bombe la nageoire
+    (function cup(g) {                              // the fin is bowed
       var pp = g.attributes.position;
       for (var i = 0; i < pp.count; i++) {
         var x = pp.getX(i), y = pp.getY(i);
@@ -1808,10 +1808,10 @@
     pl.position.set(0.255, 0.0, 0.30); pl.rotation.set(0, -0.5, 0.2);
     var pr = toonMesh(pectShape, pectOpt);
     pr.position.set(-0.255, 0.0, 0.30); pr.rotation.set(0, Math.PI + 0.5, -0.2);
-    pr.scale.setScalar(0.72);                      // la petite nageoire
+    pr.scale.setScalar(0.72);                      // the small fin
     g.add(pl); g.add(pr);
 
-    // --- yeux façon dessin animé (grands, brillants)
+    // --- cartoon eyes (big and glossy)
     var eyes = new THREE.Group();
     for (var s = -1; s <= 1; s += 2) {
       var sclera = toonMesh(new THREE.SphereGeometry(0.152, 14, 10),
@@ -1840,7 +1840,7 @@
     return g;
   }
 
-  /** Poisson de banc : corps + queue fusionnés, œil peint par le shader. */
+  /** School fish: body and tail merged, eye painted by the shader. */
   function buildSmallFish(opt) {
     var parts = [{ geo: fishBodyGeo(opt.w || 0.30, opt.h || 0.55, { belly: 0.1, seg: 14, seg2: 10 }), matrix: null }];
     var tail = finGeo([[0, 0.09], [0.34, 0.34], [0.46, 0.30], [0.30, 0.04],
@@ -1868,7 +1868,7 @@
     });
   }
 
-  /** Méduse translucide (le danger du récif). */
+  /** Translucent jellyfish (the hazard of the reef). */
   function buildJellyfish() {
     var g = new THREE.Group();
     var bell = new THREE.SphereGeometry(1, 18, 12, 0, TAU, 0, Math.PI * 0.58);
@@ -1896,13 +1896,13 @@
       side: THREE.DoubleSide, rim: 0.9, emissive: 0.25, soft: 0.2, outline: false,
       mode: 2, swayAmp: 0.36, swayFreq: 1.7, swaySpeed: 1.6
     });
-    tents.rotation.x = Math.PI;                     // les tentacules pendent
+    tents.rotation.x = Math.PI;                     // the tentacles hang down
     g.add(tents);
     g.userData.bell = bellMesh;
     return g;
   }
 
-  /** Tortue de mer, silhouette qui passe au loin. */
+  /** Sea turtle, a silhouette drifting past in the distance. */
   function buildTurtle() {
     var g = new THREE.Group();
     var shell = new THREE.SphereGeometry(1, 18, 12);
@@ -1938,10 +1938,10 @@
 
 
   /* ================================================================== */
-  /* LE BESTIAIRE                                                       */
+  /* THE BESTIARY                                                       */
   /* ================================================================== */
 
-  /** Paire d'yeux façon dessin animé (sclère + pupille + éclat), en miroir sur X. */
+  /** A pair of cartoon eyes (sclera + pupil + glint), mirrored on X. */
   function addEyes(parent, x, y, z, r, opt) {
     opt = opt || {};
     for (var s = -1; s <= 1; s += 2) {
@@ -1965,14 +1965,14 @@
     }
   }
 
-  /** Nageoire triangulaire simple, orientée par une matrice. */
+  /** A simple triangular fin, oriented by a matrix. */
   function finPart(pts, thick, mtx, tint) {
     var g = finGeo(pts, thick);
     if (tint) finEdge(g, tint[0], tint[1], tint[2], tint[3]);
     return { geo: g, matrix: mtx };
   }
 
-  /* ---------- LE REQUIN ---------- */
+  /* ---------- THE SHARK ---------- */
   var SHARK_HOOK = [
     '  base = mix(base, uColorB, smoothstep(-0.02, -0.30, vObj.y));',           // ventre blanc
     '  float side = step(0.13, abs(vObj.x));',
@@ -1993,7 +1993,7 @@
     var d2 = finGeo([[0, 0], [0.08, 0.12], [0.20, 0.01]], 0.03);
     d2.rotateY(Math.PI / 2);
     parts.push({ geo: d2, matrix: TRS(0, 0.17, -0.62) });
-    // caudale en croissant
+    // crescent tail
     var t1 = finGeo([[0, 0.04], [0.16, 0.30], [0.40, 0.62], [0.30, 0.16], [0.34, -0.02],
                      [0.30, -0.34], [0.14, -0.20], [0, -0.04]], 0.035);
     t1.rotateY(Math.PI / 2);
@@ -2032,7 +2032,7 @@
 
   function buildHammerhead(len) {
     var g = buildShark(len);
-    // marteau : une barre aplatie en travers du museau
+    // hammer: a flattened bar across the snout
     var head = toonMesh(new THREE.SphereGeometry(0.5, 14, 9), { color: 0x7c8b96, spec: 0.25, rim: 0.3 });
     head.scale.set(0.62, 0.16, 0.20);
     head.position.set(0, 0.02, 0.66);
@@ -2041,10 +2041,10 @@
     return g;
   }
 
-  /* ---------- LA RAIE ---------- */
+  /* ---------- THE RAY ---------- */
   function buildRay(span) {
     var g = new THREE.Group();
-    // aile : un disque aplati étiré, bords fins
+    // wing: a flattened disc, stretched, with thin edges
     var w = new THREE.SphereGeometry(1, 26, 14);
     var p = w.attributes.position, v = new THREE.Vector3();
     for (var i = 0; i < p.count; i++) {
@@ -2070,14 +2070,14 @@
     tail.translate(0, 0.75, 0);
     swayByHeight(tail, 0, 1.5, 1.3);
     var tm = toonMesh(tail, { color: 0x3f4d5e, mode: 2, swayAmp: 0.22, swaySpeed: 1.6, rim: 0.3 });
-    tm.rotation.x = -Math.PI / 2 + 0.14;   // la queue traîne derrière
+    tm.rotation.x = -Math.PI / 2 + 0.14;   // the tail trails behind
     tm.position.set(0, 0.02, -0.55);
     g.add(tm);
-    // cornes céphaliques
+    // cephalic horns
     for (var s2 = -1; s2 <= 1; s2 += 2) {
       var horn = toonMesh(new THREE.ConeGeometry(0.055, 0.26, 6), { color: 0x465666, rim: 0.3 });
       horn.position.set(0.14 * s2, 0.0, 0.46);
-      horn.rotation.x = 1.55;                // les cornes pointent devant
+      horn.rotation.x = 1.55;                // the horns point forward
       g.add(horn);
     }
     addEyes(g, 0.19, 0.02, 0.30, 0.05, { white: 0xf2ede0, pupil: 0x0a1018 });
@@ -2087,7 +2087,7 @@
   }
 
   /* ---------- POISSONS PERSONNAGES ---------- */
-  /** Poisson au corps aplati (chirurgien, idole, papillon…). */
+  /** Disc-bodied fish (tang, moorish idol, butterflyfish…). */
   function buildDiscFish(opt) {
     var g = new THREE.Group();
     var parts = [{ geo: fishBodyGeo(opt.w || 0.22, opt.h || 0.78, { belly: 0.05, head: opt.head || 0.15, seg: 20, seg2: 14 }) }];
@@ -2112,7 +2112,7 @@
       spec: 0.3, rim: 0.4, sss: 0.2
     });
     g.add(body);
-    // pectorales qui battent
+    // beating pectorals
     var pect = finGeo([[0, 0], [0.14, 0.13], [0.28, 0.12], [0.34, 0.0], [0.20, -0.11], [0.05, -0.09]], 0.016);
     finEdge(pect, 0.16, 0.34, 1.1, 0.35);
     var pl = toonMesh(pect, { color: opt.finColor !== undefined ? opt.finColor : opt.color, opacity: 0.85, transparent: true, side: THREE.DoubleSide, rim: 0.5, sss: 0.9 });
@@ -2128,7 +2128,7 @@
     return g;
   }
 
-  /** Chirurgien bleu (le compagnon bavard). */
+  /** Blue tang (the chatty companion). */
   function buildBlueTang(scale) {
     return buildDiscFish({
       color: 0x2f6fd8, colorB: 0x7fc0ff, finColor: 0xffd23f, iris: 0x9fd8e8,
@@ -2136,7 +2136,7 @@
       eyeX: 0.078, eyeY: 0.20, eyeZ: 0.50, eyeR: 0.088,
       hook: [
         '  base = mix(base, uColorB, smoothstep(-0.2, 0.6, vObj.y)*0.5);',
-        // la "palette" : un ovale sombre en arrière du corps, bordé de bleu clair
+        // the "palette": a dark oval towards the rear, edged in pale blue
         '  float pd = length(vec2((vObj.z + 0.30)*1.15, (vObj.y - 0.02)*1.7));',
         '  base = mix(base, vec3(0.05,0.07,0.13), (1.0 - smoothstep(0.30, 0.44, pd))*0.88);',
         '  base = mix(base, vec3(1.0,0.82,0.20), smoothstep(-0.70, -0.92, vObj.z));', // queue jaune
@@ -2145,7 +2145,7 @@
     });
   }
 
-  /** Idole des Maures (rayures noir / blanc / jaune). */
+  /** Moorish idol (black / white / yellow stripes). */
   function buildMoorishIdol(scale) {
     return buildDiscFish({
       color: 0xf7f3e4, colorB: 0xffffff, finColor: 0xffd23f, iris: 0xbfe0ee,
@@ -2162,7 +2162,7 @@
     });
   }
 
-  /** Poisson-globe : se gonfle quand on approche. */
+  /** Pufferfish: puffs up when you come close. */
   function buildPufferfish(scale) {
     var g = new THREE.Group();
     var b = new THREE.SphereGeometry(0.62, 20, 15);
@@ -2217,7 +2217,7 @@
     var curve = new THREE.CatmullRomCurve3(pts);
     var bodyG = new THREE.TubeGeometry(curve, 16, 0.13, 8, false);
     var pb = bodyG.attributes.position, vb = new THREE.Vector3();
-    for (var j = 0; j < pb.count; j++) {                 // effiler la queue
+    for (var j = 0; j < pb.count; j++) {                 // taper the tail
       vb.fromBufferAttribute(pb, j);
       var k = clamp((vb.y + 0.2) / 1.5, 0, 1);
       pb.setXYZ(j, vb.x * (0.5 + k * 0.9), vb.y, (vb.z - Math.sin(k * 2.4) * 0.28 + 0.1) * (0.5 + k * 0.9)
@@ -2256,7 +2256,7 @@
     return g;
   }
 
-  /** Pieuvre : manteau bombé et huit bras qui ondulent. */
+  /** Octopus: a domed mantle and eight rippling arms. */
   function buildOctopus(scale) {
     var g = new THREE.Group();
     var m = new THREE.SphereGeometry(0.5, 16, 12);
@@ -2285,7 +2285,7 @@
       var pa = ag.attributes.position, va = new THREE.Vector3();
       ensureAttrs(ag);
       var sw = ag.attributes.aSway;
-      for (var j = 0; j < pa.count; j++) {              // effiler + souplesse vers la pointe
+      for (var j = 0; j < pa.count; j++) {              // taper + softness towards the tip
         va.fromBufferAttribute(pa, j);
         var d = Math.sqrt(va.x * va.x + va.z * va.z);
         var kk = clamp((d - 0.30) / 1.15, 0, 1);
@@ -2306,7 +2306,7 @@
     return g;
   }
 
-  /** Crabe : carapace, pattes et pinces. */
+  /** Crab: shell, legs and claws. */
   function buildCrab(scale) {
     var g = new THREE.Group();
     var sh = new THREE.SphereGeometry(0.5, 16, 11);
@@ -2336,7 +2336,7 @@
     }
     var legMesh = toonMesh(mergeGeos(legs), { color: 0xc44a38, spec: 0.35, rim: 0.3 });
     g.add(legMesh);
-    // yeux sur pédoncules
+    // eyes on stalks
     for (var s3 = -1; s3 <= 1; s3 += 2) {
       var st = toonMesh(new THREE.CylinderGeometry(0.022, 0.026, 0.2, 5), { color: 0xd8543f, rim: 0.3 });
       st.position.set(s3 * 0.14, 0.52, 0.24);
@@ -2389,7 +2389,7 @@
     return g;
   }
 
-  /** Murène : longue anguille tapie dans son trou. */
+  /** Moray: a long eel lurking in its hole. */
   function buildMoray(scale) {
     var g = new THREE.Group();
     var pts = [];
@@ -2416,7 +2416,7 @@
       spec: 0.35, rim: 0.35, bump: 0.2
     });
     g.add(body);
-    // mâchoire
+    // jaw
     var jaw = toonMesh(new THREE.SphereGeometry(0.24, 12, 8, 0, TAU, 0, Math.PI * 0.55),
       { color: 0x6f8452, rim: 0.3 });
     jaw.scale.set(1, 0.5, 1.5);
@@ -2437,7 +2437,7 @@
     return g;
   }
 
-  /** Anguilles de jardin : elles rentrent dans le sable quand on approche. */
+  /** Garden eels: they duck into the sand when you come near. */
   function buildGardenEels(count, radius) {
     var g = new THREE.Group();
     var eels = [];
@@ -2463,7 +2463,7 @@
     return g;
   }
 
-  /** Bénitier : deux valves qui s'ouvrent et se ferment. */
+  /** Giant clam: two valves that open and close. */
   function buildClam(scale) {
     var g = new THREE.Group();
     function valve(sign) {
@@ -2503,7 +2503,7 @@
     return g;
   }
 
-  /** Étoile de mer bavarde (avec des yeux). */
+  /** Chatty starfish (with eyes). */
   function buildStarfishNPC(scale) {
     var g = new THREE.Group();
     var st = toonMesh(starfishGeo(), {
@@ -2518,7 +2518,7 @@
     return g;
   }
 
-  /** Silhouette de baleine, très loin dans le bleu. */
+  /** Whale silhouette, far off in the blue. */
   function buildWhale() {
     var g = new THREE.Group();
     var b = fishBodyGeo(0.55, 0.62, { belly: 0.25, head: 0.35, seg: 18, seg2: 12 });
@@ -2543,7 +2543,7 @@
     return g;
   }
 
-  /** Perle de nacre à collecter. */
+  /** A pearl to collect. */
   function buildPearl() {
     var g = new THREE.Group();
     var core = toonMesh(new THREE.SphereGeometry(0.42, 16, 12), {
@@ -2574,13 +2574,13 @@
   }
 
   /* ================================================================== */
-  /* SCÈNE, RENDU, POST-TRAITEMENT                                      */
+  /* SCENE, RENDERING, POST-PROCESSING                                  */
   /* ================================================================== */
   var TEX = {};
   var renderer, scene, camera, W = 1, H = 1, pixelScale = 1;
   var rtScene, rtBrightA, rtBrightB, fsScene, fsCam, fsQuad;
   var matBright, matBlur, matComp;
-  var QUALITY = 2;                         // 2 = élevée, 1 = moyenne, 0 = basse
+  var QUALITY = 2;                         // 2 = high, 1 = medium, 0 = low
   var flashCollect = 0, flashSting = 0;
 
   function initRenderer() {
@@ -2596,9 +2596,9 @@
     TEX.soft = softSpriteTex();
     TEX.bubble = bubbleSpriteTex();
 
-    // ---- cibles de rendu
+    // ---- render targets
     var half = renderer.capabilities.isWebGL2 ? THREE.HalfFloatType : THREE.UnsignedByteType;
-    // pas de MSAA : on a besoin d'une texture de profondeur (FXAA en compensation)
+    // no MSAA: we need a depth texture (FXAA makes up for it)
     rtScene = new THREE.WebGLRenderTarget(2, 2, {
       minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, type: half
     });
@@ -2641,7 +2641,7 @@
       ].join('\n')
     });
 
-    // Étalonnage "film d'animation" + profondeur de champ + rayons vers le soleil
+    // "Animated film" grading + depth of field + sun shafts
     matComp = new THREE.ShaderMaterial({
       uniforms: {
         tDiffuse: { value: null }, tBloom: { value: null }, tDepth: { value: null },
@@ -2658,7 +2658,7 @@
         'uniform float uSunVis, uNear, uFar, uDof, uMenace;',
         'uniform vec2 uTexel, uSunScreen;',
         'varying vec2 vUv;',
-        'vec3 filmic(vec3 x){',                        // courbe type ACES simplifiée
+        'vec3 filmic(vec3 x){',                        // simplified ACES-style curve
         '  x = max(x, 0.0);',
         '  return clamp((x*(2.51*x+0.03))/(x*(2.43*x+0.59)+0.14), 0.0, 1.0);',
         '}',
@@ -2667,7 +2667,7 @@
         '  float ndc = z*2.0 - 1.0;',
         '  return (2.0*uNear*uFar)/(uFar + uNear - ndc*(uFar - uNear));',
         '}',
-        // anticrénelage léger : moyenne des diagonales pondérée par le contraste local
+        // light anti-aliasing: diagonal average weighted by local contrast
         'vec3 aaSample(vec2 uv){',
         '  vec3 c0 = texture2D(tDiffuse, uv).rgb;',
         '  vec3 a = texture2D(tDiffuse, uv + vec2( 0.6, 0.6)*uTexel).rgb;',
@@ -2677,7 +2677,7 @@
         '  vec3 av = (a+b+c+d)*0.25;',
         '  return mix(c0, av, clamp(length(av-c0)*3.0, 0.0, 0.62));',
         '}',
-        // profondeur de champ : petit disque de 7 taps dont le rayon suit le flou
+        // depth of field: a small 7-tap disc whose radius follows the blur amount
         'vec3 dofSample(vec2 uv, float coc){',
         '  vec2 r = uTexel * (1.0 + coc*6.0);',
         '  vec3 s = texture2D(tDiffuse, uv).rgb * 0.24;',
@@ -2693,17 +2693,17 @@
         '  vec2 uv = vUv;',
         '  vec2 c = uv - 0.5;',
         '  float r2 = dot(c,c);',
-        // léger flottement liquide
+        // slight liquid wobble
         '  uv += vec2(sin(uv.y*11.0 + uTime*0.55), cos(uv.x*9.0 - uTime*0.42)) * 0.0013;',
         '  float dpt = linDepth(uv);',
         '  float coc = smoothstep(26.0, 135.0, dpt) * uDof;',
         '  vec3 col = coc > 0.02 ? dofSample(uv, coc) : aaSample(uv);',
-        // aberration chromatique douce sur les bords
+        // soft chromatic aberration towards the edges
         '  float ca = 0.0016 * r2 * 3.0;',
         '  col.r = mix(col.r, texture2D(tDiffuse, uv + c*ca).r, 0.85);',
         '  col.b = mix(col.b, texture2D(tDiffuse, uv - c*ca).b, 0.85);',
         '  col += texture2D(tBloom, uv).rgb * uBloom;',
-        // rayons de soleil : flou radial de la passe des hautes lumières
+        // sun shafts: radial blur of the bright pass
         '  if(uSunVis > 0.001){',
         '    vec2 dir = (uSunScreen - uv) * 0.30;',
         '    vec3 sh = vec3(0.0);',
@@ -2714,7 +2714,7 @@
         '  }',
         '  col *= uExposure;',
         '  col = filmic(col);',
-        // étalonnage
+        // grading
         '  float l = dot(col, vec3(0.299,0.587,0.114));',
         '  col = mix(vec3(l), col, 1.22);',
         '  col *= mix(vec3(0.90,1.02,1.06), vec3(1.05,1.0,0.95), smoothstep(0.15,0.85,l));',
@@ -2744,9 +2744,9 @@
     });
   }
   /* ------------------------------------------------------------------ */
-  /* OMBRES PORTÉES DU SOLEIL                                           */
-  /* Passe de profondeur orthographique qui suit le joueur ; seuls les   */
-  /* objets marqués (calque 1) y participent.                           */
+  /* SUN SHADOWS                                                        */
+  /* An orthographic depth pass that follows the player; only objects   */
+  /* marked on layer 1 take part in it.                                 */
   /* ------------------------------------------------------------------ */
   var SHADOW = { size: 2048, cam: null, rt: null, depthMat: null, half: 74, ready: false };
 
@@ -2783,7 +2783,7 @@
     SHADOW.ready = true;
   }
 
-  /** Marque un objet (et ses enfants) comme projetant une ombre. */
+  /** Marks an object (and its children) as casting a shadow. */
   function castShadow(obj) {
     obj.layers.enable(1);
     for (var i = 0; i < obj.children.length; i++) castShadow(obj.children[i]);
@@ -2794,7 +2794,7 @@
   function renderShadowMap() {
     if (!SHADOW.ready) return;
     var c = SHADOW.cam, sun = U.uSunDir.value;
-    // centre devant le joueur, aligné sur la grille de texels (anti-scintillement)
+    // centred ahead of the player, snapped to the texel grid (no shimmer)
     camForward(tmpA);
     var cx = player.pos.x + tmpA.x * 26, cz = player.pos.z + tmpA.z * 26;
     var texel = (SHADOW.half * 2) / SHADOW.size;
@@ -2876,7 +2876,7 @@
       renderer.render(fsScene, fsCam);
     }
 
-    // position du soleil à l'écran, pour les rayons
+    // the sun's position on screen, for the shafts
     _v3.copy(camera.position).addScaledVector(U.uSunDir.value, 300).project(camera);
     matComp.uniforms.uSunScreen.value.set(_v3.x * 0.5 + 0.5, _v3.y * 0.5 + 0.5);
     camera.getWorldDirection(tmpA);
@@ -2892,19 +2892,19 @@
   }
 
   /* ================================================================== */
-  /* CONSTRUCTION DU MONDE                                              */
+  /* BUILDING THE WORLD                                                 */
   /* ================================================================== */
   var world = {
-    colliders: [],        // {x,y,z,r} sphères, {x,y,z,r,h} disques (étagères)
+    colliders: [],        // {x,y,z,r} spheres, {x,y,z,r,h} discs (shelves)
     pearls: [],
-    critters: [],         // toute la faune animée
-    npcs: {},             // PNJ indexés par identifiant
-    refuges: [],          // anémones où l'on est à l'abri
+    critters: [],         // every animated creature
+    npcs: {},             // NPCs indexed by id
+    refuges: [],          // anemones that shelter us
     massifs: [],
-    menace: 0,            // 0..1 : un prédateur est proche
+    menace: 0,            // 0..1: a predator is close
     places: {},           // lieux remarquables
-    vents: [],            // bouches à bulles
-    pickups: [],          // objets à ramasser
+    vents: [],            // bubble vents
+    pickups: [],          // items to pick up
     jellies: [],
     schools: [],
     turtle: null,
@@ -2912,13 +2912,13 @@
     home: new THREE.Vector3(0, 0, 0)
   };
 
-  function tint(hex, k) {                       // éclaircit/assombrit une couleur
+  function tint(hex, k) {                       // lightens/darkens a colour
     var c = new THREE.Color(hex);
     c.r = clamp(c.r * k, 0, 1); c.g = clamp(c.g * k, 0, 1); c.b = clamp(c.b * k, 0, 1);
     return c.getHex();
   }
 
-  /* ---------- le fond sableux ---------- */
+  /* ---------- the sandy floor ---------- */
   function buildFloor() {
     var g = new THREE.PlaneGeometry(340, 340, 150, 150);
     g.rotateX(-Math.PI / 2);                    // espace objet = espace monde
@@ -2945,7 +2945,7 @@
     return m;
   }
 
-  /* ---------- le fond d'eau : dégradé profond -> turquoise ---------- */
+  /* ---------- the far water: deep blue -> turquoise ---------- */
   function buildWaterDome() {
     var g = new THREE.SphereGeometry(420, 24, 16);
     var mat = new THREE.ShaderMaterial({
@@ -2977,10 +2977,10 @@
     return m;
   }
 
-  /* ---------- la surface, vue d'en dessous ---------- */
+  /* ---------- the surface, seen from underneath ---------- */
   function buildSurface() {
     var g = new THREE.PlaneGeometry(700, 700, 1, 1);
-    g.rotateX(Math.PI / 2);                     // normale vers le bas
+    g.rotateX(Math.PI / 2);                     // normal pointing down
     var u = sharedU();
     var mat = new THREE.ShaderMaterial({
       uniforms: u,
@@ -3018,7 +3018,7 @@
     return m;
   }
 
-  /* ---------- rayons de lumière ---------- */
+  /* ---------- god rays ---------- */
   function buildGodRays() {
     var group = new THREE.Group();
     var u = sharedU();
@@ -3065,7 +3065,7 @@
     return group;
   }
 
-  /* ---------- ombres de contact (un seul mesh pour tout le récif) ---------- */
+  /* ---------- contact shadows (a single mesh for the whole reef) ---------- */
   function pushShadow(x, z, radius, y) { world.shadows.push([x, z, radius, y]); }
   function buildShadows() {
     if (!world.shadows.length) return null;
@@ -3076,7 +3076,7 @@
       g.rotateX(-Math.PI / 2);
       if (s[3] === undefined) {
         var p = g.attributes.position;
-        for (var j = 0; j < p.count; j++) {        // la tache épouse le relief du sable
+        for (var j = 0; j < p.count; j++) {        // the patch follows the shape of the sand
           var wx = p.getX(j) + s[0], wz = p.getZ(j) + s[1];
           p.setY(j, floorHeight(wx, wz) - floorHeight(s[0], s[1]) + 0.07);
         }
@@ -3144,9 +3144,9 @@
           'void main(){',
           '  vec3 p = position;',
           '  float span = uSpread*2.0;',
-          // La dérive vient de l'intégrale du courant : les mêmes rafales
-          // emportent la poussière et penchent les coraux, donc on lit une eau
-          // qui bouge et pas deux animations sans rapport.
+          // The drift comes from the integral of the current: the same gusts carry
+          // the dust and lean the corals, so you read one moving body of water
+          // rather than two unrelated animations.
           '  p.x += sin(uTime*0.31 + aSeed)*0.9 + uDrift.x;',
           '  p.z += cos(uTime*0.27 + aSeed*1.7)*0.9 + uDrift.y;',
           '  p.y += uTime*uRise;',
@@ -3192,13 +3192,13 @@
   }
 
   /* ================================================================== */
-  /* LE RÉCIF : massifs d'étagères de roche encroûtés de coraux          */
+  /* THE REEF: massifs of coral-crusted rock shelves                    */
   /* ------------------------------------------------------------------ */
-  /* Tout le décor statique est fusionné en 3 maillages par massif       */
-  /* (rigide / souple / plat), ce qui permet des milliers de coraux      */
-  /* pour une poignée d'appels de dessin.                                */
+  /* All the static scenery is merged into 3 meshes per massif          */
+  /* (hard / soft / flat), which buys thousands of corals for a         */
+  /* handful of draw calls.                                             */
   /* ================================================================== */
-  var REEF = {};                 // les 3 seuls matériaux du décor
+  var REEF = {};                 // the only 3 materials in the scenery
   var batch = null;
   var seedCounter = 1000;
   function nextSeed() { return ++seedCounter; }
@@ -3231,8 +3231,8 @@
   function addDisc(x, y, z, r, h) { world.colliders.push({ x: x, y: y, z: z, r: r, h: h }); }
 
   function buildReef() {
-    /* ---- matériaux : un pour la roche et les coraux durs, un pour ce qui
-            ondule, un pour les feuilles à double face ---- */
+    /* ---- materials: one for rock and hard corals, one for whatever sways,
+                  one for double-sided leaves ---- */
     var MOTTLE = [
       '  float mo = fbm(vWP.xz*0.33 + vWP.y*0.12);',
       '  base *= 0.90 + 0.20*mo;',
@@ -3248,7 +3248,7 @@
       mode: 0, swayAmp: 0.19, swaySpeed: 1.3, side: THREE.DoubleSide
     });
 
-    /* ---- bibliothèque de géométries réutilisées partout ---- */
+    /* ---- library of geometries reused everywhere ---- */
     var GEO = {
       knob:   [knobCoralGeo(301, 6), knobCoralGeo(302, 8), knobCoralGeo(303, 10), knobCoralGeo(304, 5)],
       brain:  [brainCoralGeo(311), brainCoralGeo(312)],
@@ -3273,7 +3273,7 @@
       var v = rnd();
       return v < 0.5 ? PAL.rock : (v < 0.75 ? tint(PAL.rock, 0.88) : tint(PAL.rock, 1.09));
     }
-    /** Palette d'un massif : 3 teintes dominantes + accents rares. */
+    /** Palette for one massif: 3 dominant tints + rare accents. */
     function makePal() {
       var p = [];
       for (var i = 0; i < 3; i++) p.push(pick(PAL.coral));
@@ -3284,7 +3284,7 @@
       return v < 0.82 ? pal[(rnd() * pal.length) | 0] : pick(PAL.coral);
     }
 
-    /** Pose un corail d'un type donné. */
+    /** Places one coral of a given type. */
     function placeProp(t, x, z, py, col, big, shadY, onSand) {
       var rot = rnd() * TAU, ph = rnd() * TAU, s = 0;
       {
@@ -3300,17 +3300,17 @@
           s = (big > 1 && rnd() < 0.25 ? rr(1.7, 2.6) : rr(0.55, 1.3)) * big;
           put('hard', pick(GEO.branch), TRS(x, py - 0.08, z, 0, rot, 0, s), col);
           if (s > 0.9) addCollider(x, py + 1.0 * s, z, 1.0 * s + 0.5);
-        } else if (t < 0.49) {                              // éponges
+        } else if (t < 0.49) {                              // sponges
           s = rr(0.6, 1.35) * big;
           put('hard', pick(GEO.sponge), TRS(x, py - 0.05, z, 0, rot, 0, s), col);
-        } else if (t < 0.665) {                             // anémones pompons
+        } else if (t < 0.665) {                             // pompom anemones
           s = rr(0.55, 1.25) * big;
           put('soft', pick(GEO.pom), TRS(x, py - 0.05, z, 0, rot, 0, s), col, ph);
-        } else if (t < 0.705) {                             // grande table frangée
+        } else if (t < 0.705) {                             // big fringed table
           s = rr(0.75, 1.3);
           put('soft', pick(GEO.fringe), TRS(x, py + 0.1, z, 0, rot, 0, s), col, ph);
           addDisc(x, py + 0.35 * s, z, 2.4 * s, 0.5 * s + 0.7);
-        } else if (t < 0.775) {                             // fouets de mer
+        } else if (t < 0.775) {                             // sea whips
           s = rr(0.6, 1.3) * big;
           put('soft', pick(GEO.whip), TRS(x, py, z, 0, rot, 0, s), col, ph);
         } else if (t < 0.825) {                             // gorgones
@@ -3325,7 +3325,7 @@
           put('flat', rnd() < 0.75 ? pick(GEO.grass) : pick(GEO.kelp),
               TRS(x, py - 0.1, z, 0, rot, 0, s), pick(PAL.algae), ph);
           s = 0;
-        } else if (t < 0.962) {                             // petite étagère
+        } else if (t < 0.962) {                             // small shelf
           s = rr(0.6, 1.2);
           put('hard', pick(GEO.shelfS), TRS(x, py + 0.2, z, 0, rot, 0, s), rockCol());
         } else if (t < 0.984) {
@@ -3337,8 +3337,8 @@
       if (s > 0.62) pushShadow(x, z, s * 1.45, onSand ? undefined : shadY);
     }
 
-    /** Sème des coraux sur un disque (sommet d'étagère, ou le sable),
-        en petites touffes d'une même espèce comme dans le film. */
+    /** Scatters corals over a disc (the top of a shelf, or the sand),
+              in small tufts of a single species, as in the film. */
     function encrust(cx, cz, y, radius, count, pal, opt) {
       opt = opt || {};
       var placed = 0, guard = 0;
@@ -3358,7 +3358,7 @@
       }
     }
 
-    /** Un massif : noyau de roche + étagères empilées + coraux partout. */
+    /** One massif: a rock core + stacked shelves + corals everywhere. */
     function buildMassif(cx, cz, size, opt) {
       opt = opt || {};
       beginBatch();
@@ -3379,7 +3379,7 @@
         if (sr < 2.2) break;
         var th = rr(1.1, 2.3);
         var sx = cx + rr(-1, 1) * size * 0.26, sz = cz + rr(-1, 1) * size * 0.26;
-        // pilier qui porte le plateau (sinon les étagères ont l'air de flotter)
+        // pillar holding the plate up (otherwise the shelves look like they float)
         var supY0 = i === 0 ? baseY - 1 : top.y;
         var supH = y - th * 0.5 - supY0 + 0.8;
         if (supH > 0.4) {
@@ -3399,13 +3399,13 @@
         top = { x: sx, y: y + th * 0.5, z: sz, r: sr };
         y += rr(1.1, 2.3) + th;
       }
-      // au pied du massif, sur le sable
+      // at the foot of the massif, on the sand
       encrust(cx, cz, 0, size * 1.1, Math.round(size * 2.4), pal, { onSand: true, edge: true });
       var meshes = endBatch();
       return { x: cx, z: cz, size: size, top: top, meshes: meshes };
     }
 
-    /** Passerelle de roche entre deux massifs : les arches du film. */
+    /** A rock bridge between two massifs: the arches from the film. */
     function buildBridge(a, b) {
       beginBatch();
       var mx = (a.top.x + b.top.x) * 0.5, mz = (a.top.z + b.top.z) * 0.5;
@@ -3426,13 +3426,13 @@
       world.arch = new THREE.Vector3(mx, y, mz);
     }
 
-    /* ---- 1. la maison : massif central coiffé de l'anémone hôte ---- */
+    /* ---- 1. home: the central massif crowned by the host anemone ---- */
     var home = buildMassif(0, 0, 15);
     beginBatch();
-    var hostR = 4.4;          // dans le film l'anémone écrase le poisson
-    /* Teinte blanche : le dégradé magenta → crème est cuit dans les sommets, et
-       la couleur passée ici le MULTIPLIE. Un rose l'aurait reteint en entier et
-       fait disparaître la colonne magenta sous une bouillie uniforme. */
+    var hostR = 4.4;          // in the film the anemone dwarfs the fish
+    /* White tint: the magenta → cream gradient is baked into the vertices, and
+           the colour passed here MULTIPLIES it. A pink would have re-tinted the
+           whole thing and buried the magenta column under a uniform mush. */
     put('soft', hostAnemoneGeo(777, hostR, 172),
         TRS(home.top.x, home.top.y + 0.1, home.top.z, 0, rnd() * TAU, 0, 1), 0xffffff, rnd() * TAU);
     endBatch();
@@ -3440,7 +3440,7 @@
     world.refuges.push(world.home.clone());
     addDisc(home.top.x, home.top.y + 0.6, home.top.z, hostR * 0.7, 1.2);
 
-    /* ---- 2. les autres massifs ---- */
+    /* ---- 2. the other massifs ---- */
     var massifs = [home];
     var RING = [];
     var rings = [[30, 4, 14], [54, 6, 19], [78, 7, 23], [98, 5, 13]];
@@ -3460,7 +3460,7 @@
         if ((mx2 - pv.x) * (mx2 - pv.x) + (mz2 - pv.z) * (mz2 - pv.z) < pv.clear * pv.clear) clash = true;
       }
       if (clash) continue;
-      // pas de massif dans le vide du tombant
+      // no massif out in the void of the drop-off
       if ((1 - smoothstep(0.5, 1.0, angGap(Math.atan2(mz2, mx2), DROP_ANG))) *
           smoothstep(70, 92, Math.sqrt(mx2 * mx2 + mz2 * mz2)) > 0.25) continue;
       massifs.push(buildMassif(mx2, mz2, RING[i][2] * rr(0.85, 1.15)));
@@ -3498,10 +3498,10 @@
     if (!world.arch) world.arch = new THREE.Vector3(massifs[1].top.x, massifs[1].top.y + 4, massifs[1].top.z);
     world.massifs = massifs;
 
-    /* ---- 5. les lieux remarquables ---- */
+    /* ---- 5. the landmarks ---- */
     buildLandmarks(GEO, encrust, makePal, rockCol);
 
-    /* ---- 6. le sable entre les massifs : semis clairsemé, par quadrant ---- */
+    /* ---- 6. the sand between massifs: a sparse scatter, per quadrant ---- */
     for (var qd2 = 0; qd2 < 4; qd2++) {
       beginBatch();
       var pal2 = makePal();
@@ -3525,7 +3525,7 @@
     }
   }
 
-  /* ---------- emplacements des perles ---------- */
+  /* ---------- where the pearls go ---------- */
   function buildPearls() {
     var spots = [];
     function far(v) {
@@ -3544,7 +3544,7 @@
       }
       return true;
     }
-    // une perle sous l'arche, une tout près de la surface
+    // one pearl under the arch, one right up near the surface
     spots.push(new THREE.Vector3(world.arch.x, world.arch.y - 4.5, world.arch.z));
     spots.push(new THREE.Vector3(rr(-30, 30), CFG.WATER_Y - 7, rr(-30, 30)));
     var guard = 0;
@@ -3557,7 +3557,7 @@
     }
     world.pearlSpots = spots;
   }
-  /** Fait apparaître les perles (au démarrage de la quête). */
+  /** Spawns the pearls (when the quest starts). */
   function spawnPearls(n) {
     var sp = world.pearlSpots || [];
     for (var i = 0; i < Math.min(n, sp.length); i++) {
@@ -3565,7 +3565,7 @@
     }
   }
 
-  /* ---------- bancs de poissons ---------- */
+  /* ---------- schools of fish ---------- */
   function buildSchools() {
     var species = [
       { color: 0x2f7fe0, colorB: 0xa8ddff, w: 0.26, h: 0.62, n: 18, size: 0.55, swaySpeed: 9 },
@@ -3600,7 +3600,7 @@
     }
   }
 
-  /* ---------- méduses ---------- */
+  /* ---------- jellyfish ---------- */
   function buildJellies() {
     for (var i = 0; i < CFG.JELLIES; i++) {
       var j = buildJellyfish();
@@ -3616,7 +3616,7 @@
     }
   }
 
-  /* ---------- la tortue de passage ---------- */
+  /* ---------- the passing turtle ---------- */
   function buildTurtleActor() {
     var t = buildTurtle();
     t.scale.setScalar(2.6);
@@ -3628,7 +3628,7 @@
 
 
   /* ================================================================== */
-  /* VIE DU RÉCIF : comportements                                       */
+  /* REEF LIFE: behaviours                                              */
   /* ================================================================== */
   var ZERO = new THREE.Vector3();
   var tmpF = new THREE.Vector3(), tmpG = new THREE.Vector3();
@@ -3656,14 +3656,14 @@
       if (c.update) c.update(c, dt);
     }
   }
-  /** Battement des nageoires pectorales si le modèle en a. */
+  /** Beats the pectoral fins, if the model has any. */
   function flapPect(obj, t, amp) {
     var p = obj.userData.pect;
     if (!p) return;
     p[0].rotation.z = 0.15 + Math.sin(t) * (amp || 0.45);
     p[1].rotation.z = -0.15 - Math.sin(t + 0.4) * (amp || 0.45);
   }
-  /** Le joueur est-il à l'abri dans une anémone ? */
+  /** Is the player sheltering inside an anemone? */
   function inRefuge() {
     for (var i = 0; i < world.refuges.length; i++) {
       if (world.refuges[i].distanceToSquared(player.pos) < 42) return true;
@@ -3671,30 +3671,30 @@
     return false;
   }
 
-  /* ---------- requins : patrouille, puis fonce si on s'expose ---------- */
+  /* ---------- sharks: patrol, then charge if you expose yourself ---------- */
   function updateShark(c, dt) {
     var pos = c.obj.position;
     var dp = pos.distanceTo(player.pos);
     if (c.alert > 0) c.alert -= dt;
     if (c.cool > 0) c.cool -= dt;
 
-    /* L'anémone COUPE la poursuite, elle n'empêche pas seulement de se faire
-       repérer. C'était le bug : `inRefuge()` ne gardait que l'acquisition, donc
-       une fois `alert` posée à 3,4 s le requin continuait de foncer et pouvait
-       percuter un joueur réfugié. Pire, tant qu'on était dehors l'alerte était
-       remise à 3,4 s à chaque image — entrer dans l'anémone ne lançait qu'un
-       compte à rebours de trois secondes et demie, pendant lesquelles on se
-       faisait cogner. Se cacher ne faisait donc, littéralement, rien. */
+    /* The anemone CUTS the chase off, it does not merely stop you being
+           spotted. That was the bug: `inRefuge()` only guarded acquisition, so once
+           `alert` was set to 3.4 s the shark kept charging and could ram a player
+           who had taken shelter. Worse, while you were out in the open the alert
+           was reset to 3.4 s every frame — entering the anemone only started a
+           three-and-a-half second countdown, during which you got hit. Hiding did,
+           literally, nothing. */
     var safe = inRefuge();
     if (safe) {
       if (c.alert > 0 && G.safeT <= 0) {
-        // sans ce retour, rien ne dit au joueur que ça a marché
+        // without this feedback, nothing tells the player it worked
         G.safeT = 3.5;
         showHint(T('hint.lostYou'), 2.8);
         SND.safe();
       }
       c.alert = 0;
-      c.cool = 1.5;          // et un répit en ressortant : jamais punitif
+      c.cool = 1.5;          // and a grace period on the way out: never punishing
     } else if (G.state === 'play' && dp < c.senseR && c.cool <= 0) {
       if (c.alert <= 0) { SND.growl(); showHint(T('hint.spotted'), 3.5); }
       c.alert = 3.4;
@@ -3714,36 +3714,36 @@
       var y = c.y + Math.sin(c.t * 0.23 + c.phase) * 6;
       tmpA.set(x, y, z);
       tmpB.copy(tmpA).sub(pos);
-      /* Retour à l'orbite en nageant, pas en sautant. Le `pos.copy(tmpA)`
-         d'avant téléportait le requin sur son cercle dès la fin de la chasse ;
-         ça passait presque inaperçu quand l'alerte s'éteignait toute seule au
-         loin, mais l'anémone coupe la poursuite à bout portant — il se serait
-         évaporé sous le nez du joueur.
+      /* Back to the orbit by swimming, not by jumping. The old `pos.copy(tmpA)`
+               teleported the shark onto its circle the moment the chase ended; that
+               went almost unnoticed when the alert expired by itself far away, but
+               the anemone cuts the chase at point-blank range — it would have
+               evaporated under the player's nose.
 
-         Vitesse **bornée** et non pas lissage exponentiel : une interpolation
-         vers un point de patrouille situé à 92 u part toujours vite, quelle que
-         soit sa constante de temps — mesuré à 26 u en 50 ms, soit un saut à
-         peine étalé. Ici il nage à ~7 u/s, met une douzaine de secondes à
-         rejoindre le large, et une fois arrivé il colle à l'orbite comme
-         avant (le cercle avance à 4,6 u/s, il le rattrape donc toujours). */
+               A **bounded** speed rather than exponential smoothing: an interpolation
+               towards a patrol point 92 u away always starts fast, whatever its time
+               constant — measured at 26 u in 50 ms, a jump barely spread out. Here it
+               swims at ~7 u/s, takes a dozen seconds to reach open water, and once
+               there it tracks the orbit as before (the circle moves at 4.6 u/s, so it
+               always catches up). */
       var far = tmpB.length();
       var step = dt * c.chase * 0.55;
       if (far > step) pos.addScaledVector(tmpB, step / far);
       else pos.copy(tmpA);
       faceDir(c.obj, tmpB, dt, 2.2);
-      // plus il est loin de son orbite, plus il bat de la queue
+      // the further it is from its orbit, the harder it beats its tail
       c.obj.userData.body.userData.anim.uSwaySpeed.value = 2.4 + clamp(far / 22, 0, 1) * 1.8;
     }
     var fl = floorHeight(pos.x, pos.z) + 3;
     if (pos.y < fl) pos.y = fl;
-    // ambiance : plus il est près, plus l'eau se teinte — mais à l'abri elle
-    // se vide, et c'est le signal le plus lisible que la cachette fonctionne
+    // atmosphere: the closer it is, the redder the water — but under cover it
+    // drains away, and that is the clearest signal that hiding works
     var menace = safe ? 0 : clamp(1 - (dp - 12) / 26, 0, 1);
     if (menace > c.menace) c.menace = menace; else c.menace = damp(c.menace, menace, 2, dt);
     if (c.menace > world.menace) world.menace = c.menace;
   }
 
-  /* ---------- raie : glisse en cercles très lents ---------- */
+  /* ---------- ray: glides in very slow circles ---------- */
   function updateRay(c, dt) {
     var a = c.t * 0.055 + c.phase;
     var x = Math.cos(a) * c.r, z = Math.sin(a) * c.r;
@@ -3758,7 +3758,7 @@
   function updateTurtleCritter(c, dt) {
     var a = c.t * c.speed + c.phase;
     tmpA.set(Math.cos(a) * c.r + c.cx, c.y + Math.sin(c.t * 0.09) * 4, Math.sin(a) * c.r + c.cz);
-    if (c.follow) {                                  // escorte : il suit le joueur
+    if (c.follow) {                                  // escort: he follows the player
       tmpG.copy(player.pos).sub(c.obj.position);
       var d = tmpG.length();
       if (d > c.followD) {
@@ -3780,7 +3780,7 @@
     }
   }
 
-  /* ---------- PNJ qui flottent près de leur point d'ancrage ---------- */
+  /* ---------- NPCs drifting near their anchor point ---------- */
   function updateNpc(c, dt) {
     var a = c.t * (c.orbit || 0.5) + c.phase;
     tmpA.set(c.anchor.x + Math.cos(a) * (c.r || 1.6),
@@ -3795,7 +3795,7 @@
     if (c.extra) c.extra(c, dt, dp);
   }
 
-  /* ---------- poisson-globe : se gonfle ---------- */
+  /* ---------- pufferfish: puffs up ---------- */
   function puffExtra(c, dt, dp) {
     var want = dp < 7 ? 1 : 0;
     c.puff = damp(c.puff === undefined ? 0 : c.puff, want, want ? 6 : 2, dt);
@@ -3804,7 +3804,7 @@
     c.obj.userData.spikes.scale.setScalar(1 + c.puff * 0.35);
   }
 
-  /* ---------- pieuvre : rentre dans son trou ---------- */
+  /* ---------- octopus: ducks into its hole ---------- */
   function octoExtra(c, dt, dp) {
     var hide = dp < 4.5 ? 1 : 0;
     c.hide = damp(c.hide === undefined ? 0 : c.hide, hide, hide ? 3.5 : 1.2, dt);
@@ -3813,11 +3813,11 @@
     c.obj.userData.body.material.uniforms.uColor.value.setHex(c.hide > 0.5 ? 0x8f6f9c : 0xc4628f);
   }
 
-  /* ---------- crabe : trotte sur le sable et détale ---------- */
+  /* ---------- crab: scuttles over the sand and bolts ---------- */
   function updateCrab(c, dt) {
     var pos = c.obj.position;
     var dp = pos.distanceTo(player.pos);
-    if (dp < 7) {                                     // il détale
+    if (dp < 7) {                                     // it bolts
       tmpA.copy(pos).sub(player.pos).setY(0).normalize();
       c.dir.lerp(tmpA, 1 - Math.exp(-6 * dt));
       c.speed = damp(c.speed, 6.5, 6, dt);
@@ -3832,17 +3832,17 @@
     }
     pos.addScaledVector(c.dir, c.speed * dt);
     var rad = Math.sqrt((pos.x - c.cx) * (pos.x - c.cx) + (pos.z - c.cz) * (pos.z - c.cz));
-    if (rad > c.range) {                              // il reste dans son coin
+    if (rad > c.range) {                              // it stays in its corner
       tmpA.set(c.cx - pos.x, 0, c.cz - pos.z).normalize();
       c.dir.lerp(tmpA, 0.25);
       c.target = tmpA.clone();
     }
     pos.y = floorHeight(pos.x, pos.z) + 0.05;
-    c.obj.rotation.y = Math.atan2(c.dir.x, c.dir.z) + Math.PI * 0.5;   // il marche de travers
+    c.obj.rotation.y = Math.atan2(c.dir.x, c.dir.z) + Math.PI * 0.5;   // it walks sideways
     c.obj.position.y += Math.abs(Math.sin(c.t * c.speed * 3)) * 0.06;
   }
 
-  /* ---------- anguilles de jardin ---------- */
+  /* ---------- garden eels ---------- */
   function updateEels(c, dt) {
     var eels = c.obj.userData.eels;
     for (var i = 0; i < eels.length; i++) {
@@ -3854,7 +3854,7 @@
     }
   }
 
-  /* ---------- bénitier ---------- */
+  /* ---------- giant clam ---------- */
   function updateClam(c, dt) {
     var dp = c.obj.position.distanceTo(player.pos);
     var open = dp < 5 ? 0.06 : (0.55 + Math.sin(c.t * 0.5 + c.phase) * 0.35);
@@ -3864,7 +3864,7 @@
     c.obj.userData.mantle.material.uniforms.uEmissive.value = 0.05 + c.open * 0.2;
   }
 
-  /* ---------- murène ---------- */
+  /* ---------- moray ---------- */
   function updateMoray(c, dt) {
     var dp = c.obj.position.distanceTo(player.pos);
     var open = dp < 9 ? 0.8 + Math.sin(c.t * 5) * 0.2 : 0.25 + Math.sin(c.t * 0.8) * 0.2;
@@ -3876,7 +3876,7 @@
     }
   }
 
-  /* ---------- baleine : elle traverse le grand bleu, très loin ---------- */
+  /* ---------- whale: it crosses the open blue, far away ---------- */
   function updateWhale(c, dt) {
     if (c.wait > 0) {
       c.wait -= dt;
@@ -3901,7 +3901,7 @@
   /* ================================================================== */
   /* LIEUX REMARQUABLES                                                 */
   /* ================================================================== */
-  // clear = rayon à laisser libre de massifs autour du lieu
+  // clear = radius to keep free of massifs around the place
   var PLACES = {
     kelp:   { x: -58, z: 30, clear: 26, nameKey: 'place.kelp' },
     wreck:  { x: 54, z: 50, clear: 24, nameKey: 'place.wreck' },
@@ -3910,7 +3910,7 @@
     dropoff:{ x: 0, z: -88, clear: 30, nameKey: 'place.dropoff' }
   };
 
-  /** Ambiances lumineuses locales : chaque lieu tire la couleur de l'eau. */
+  /** Local light moods: each place pulls the colour of the water. */
   var ZONES = [];
   var ZBASE = {
     deep: new THREE.Color(PAL.deep), mid: new THREE.Color(PAL.mid),
@@ -3946,12 +3946,12 @@
   }
 
   function buildLandmarks(GEO, encrust, makePal, rockCol) {
-    /* ---------------- le tombant : falaise et grand bleu ---------------- */
+    /* ---------------- the drop-off: cliff and open blue ---------------- */
     (function dropOff() {
       var P = PLACES.dropoff;
       beginBatch();
       var pal = makePal();
-      // gros rochers sur la lèvre de la falaise
+      // big boulders on the lip of the cliff
       for (var i = 0; i < 22; i++) {
         var a = DROP_ANG + rr(-0.72, 0.72);
         var d = 66 + rr(-6, 10);
@@ -3961,7 +3961,7 @@
         addCollider(x, floorHeight(x, z), z, 4.5 * sc);
         encrust(x, z, 0, 6 * sc, 8, pal, { onSand: true });
       }
-      // gorgones géantes tournées vers le courant
+      // giant sea fans turned into the current
       for (var g = 0; g < 14; g++) {
         var ga = DROP_ANG + rr(-0.6, 0.6), gd = 62 + rr(-8, 8);
         var gx = Math.cos(ga) * gd, gz = Math.sin(ga) * gd;
@@ -3974,7 +3974,7 @@
       world.places.dropoff = new THREE.Vector3(Math.cos(DROP_ANG) * 72, 6, Math.sin(DROP_ANG) * 72);
     })();
 
-    /* ---------------- la forêt de laminaires ---------------- */
+    /* ---------------- the kelp forest ---------------- */
     (function kelpForest() {
       var P = PLACES.kelp;
       beginBatch();
@@ -3999,13 +3999,13 @@
       world.places.kelp = new THREE.Vector3(P.x, floorHeight(P.x, P.z) + 8, P.z);
     })();
 
-    /* ---------------- l'épave ---------------- */
+    /* ---------------- the wreck ---------------- */
     (function wreck() {
       var P = PLACES.wreck;
       beginBatch();
       var by = floorHeight(P.x, P.z);
       var parts = [];
-      // coque : sphère étirée, proue pointue, pont aplati
+      // hull: a stretched sphere, pointed bow, flattened deck
       var hull = new THREE.SphereGeometry(1, 26, 16);
       var hp = hull.attributes.position, hv = new THREE.Vector3();
       for (var i = 0; i < hp.count; i++) {
@@ -4034,7 +4034,7 @@
       var cab = new THREE.BoxGeometry(3.0, 2.2, 3.6);
       occByHeight(cab, -1.1, 1.1, 0.5);
       parts.push({ geo: cab, matrix: TRS(0.2, 5.4, -3.0, 0.12, 0, 0.30) });
-      // mât brisé
+      // broken mast
       var mast = new THREE.CylinderGeometry(0.22, 0.30, 9, 8, 1);
       parts.push({ geo: mast, matrix: TRS(-0.6, 8.4, 1.4, 0.45, 0, 0.5) });
       var mast2 = new THREE.CylinderGeometry(0.16, 0.22, 4.5, 7, 1);
@@ -4047,13 +4047,13 @@
       wm.scale.setScalar(1.35);
       castShadow(wm);
       scene.add(wm);
-      // collisions grossières le long de la coque
+      // rough collision along the hull
       for (var c = -1; c <= 1; c++) {
         addCollider(P.x + Math.sin(0.7) * c * 7, by + 2.6, P.z + Math.cos(0.7) * c * 7, 5.4);
       }
       addCollider(P.x + Math.sin(0.7) * -3.6, by + 5.6, P.z + Math.cos(0.7) * -3.6, 3.2);
       pushShadow(P.x, P.z, 17);
-      // l'épave est colonisée
+      // the wreck has been colonised
       var pal = makePal();
       for (var e = 0; e < 18; e++) {
         var ea = rnd() * TAU, ed = Math.sqrt(rnd()) * 6.5;
@@ -4065,15 +4065,15 @@
       addZone(P.x, P.z, 26, 0x0a4560, 0x24809c, 0x74cfd8, 130, 0.9);
     })();
 
-    /* ---------------- la grotte de la murène ---------------- */
+    /* ---------------- the moray's cave ---------------- */
     (function cave() {
       var P = PLACES.cave;
       beginBatch();
       var by = floorHeight(P.x, P.z);
-      // dôme rocheux
+      // rock dome
       var dome = rockGeo(950, 9);
       put('hard', dome, TRS(P.x, by - 1.5, P.z, 0, 0.4, 0, 1.15, 1.0, 1.15), rockCol());
-      // bouche de la grotte : un anneau + un fond très sombre
+      // mouth of the cave: a ring plus a very dark interior
       var toC = new THREE.Vector3(-P.x, 0, -P.z).normalize();
       var mAng = Math.atan2(toC.x, toC.z);
       var mx = P.x + toC.x * 11.0, mz = P.z + toC.z * 11.0;
@@ -4088,7 +4088,7 @@
       endBatch();
       var mouth = new THREE.Vector3(P.x + toC.x * 11.6, by + 3.4, P.z + toC.z * 11.6);
       world.places.cave = mouth.clone();
-      // la murène pointe hors du trou
+      // the moray pokes out of the hole
       var mor = buildMoray(1.5);
       mor.position.copy(mouth);
       mor.rotation.y = mAng;
@@ -4097,7 +4097,7 @@
       addZone(P.x, P.z, 24, 0x07283a, 0x145e78, 0x4f9cb0, 100, 0.6);
     })();
 
-    /* ---------------- le jardin d'anémones (la maison) ---------------- */
+    /* ---------------- the anemone garden (home) ---------------- */
     (function garden() {
       beginBatch();
       var home = world.massifs[0];
@@ -4107,8 +4107,8 @@
         var d = home.size * 0.75;
         var x = home.x + Math.cos(a) * d, z = home.z + Math.sin(a) * d;
         var y = floorHeight(x, z);
-        // à peine teintées, pour qu'elles ne soient pas cinq clones sans
-        // écraser le dégradé cuit (voir la note sur l'anémone de la maison)
+        // barely tinted, so they are not five clones, without
+        // flattening the baked gradient (see the note on the home anemone)
         put('soft', hostGeo, TRS(x, y, z, 0, rnd() * TAU, 0, rr(0.85, 1.18)),
             pick([0xffffff, 0xfceaff, 0xfff4e6, 0xffecf3]), rnd() * TAU);
         world.refuges.push(new THREE.Vector3(x, y + 2.2, z));
@@ -4117,7 +4117,7 @@
       world.places.garden = world.home.clone();
     })();
 
-    /* ---------------- les sources de bulles ---------------- */
+    /* ---------------- the bubble vents ---------------- */
     (function vents() {
       var P = PLACES.vents;
       beginBatch();
@@ -4137,7 +4137,7 @@
   }
 
   /* ================================================================== */
-  /* PEUPLEMENT DU RÉCIF                                                */
+  /* POPULATING THE REEF                                                */
   /* ================================================================== */
   function npcAnchor(i, dy) {
     var M = world.massifs;
@@ -4148,7 +4148,7 @@
   function populateReef() {
     var M = world.massifs;
 
-    /* ---- prédateurs ---- */
+    /* ---- predators ---- */
     addCritter(buildShark(5.2), {
       kind: 'shark', update: updateShark, cx: 0, cz: 0, r: 92, y: 20,
       speed: 0.05, senseR: 25, chase: 13, alert: 0, cool: 0, menace: 0
@@ -4158,7 +4158,7 @@
       speed: -0.038, senseR: 17, chase: 11, alert: 0, cool: 0, menace: 0
     });
 
-    /* ---- la raie qui glisse au-dessus du récif ---- */
+    /* ---- the ray gliding above the reef ---- */
     addCritter(buildRay(3.4), { kind: 'ray', update: updateRay, r: 56, y: 33 });
 
     /* ---- tortue adulte ---- */
@@ -4169,10 +4169,10 @@
       cx: 26, cz: -44, r: 30, y: 24, speed: 0.045
     });
 
-    /* ---- la baleine, très loin ---- */
+    /* ---- the whale, far away ---- */
     addCritter(buildWhale(), { kind: 'whale', update: updateWhale, y: 32, prog: 0, wait: 25, cast: false });
 
-    /* ---- les habitants (PNJ) ---- */
+    /* ---- the inhabitants (NPCs) ---- */
     function npc(id, obj, anchor, opt) {
       opt = opt || {};
       var c = addCritter(obj, {
@@ -4193,7 +4193,7 @@
     npc('shrimp', buildShrimp(1.7), npcAnchor(4, 1.2), { nameKey: 'npc.shrimp', r: 0.9, orbit: 0.4 });
     npc('star', buildStarfishNPC(2.2), npcAnchor(5, 0.35), { nameKey: 'npc.star', r: 0.05, orbit: 0.1, bob: 0.05 });
 
-    // un crabe recenseur, sur le sable près de la maison
+    // a census-taking crab, on the sand near home
     var hm = M[0];
     var crx = hm.x + 13, crz = hm.z + 15;
     var crabN = buildCrab(1.15);
@@ -4203,7 +4203,7 @@
       extra: function (c) { c.obj.position.y = floorHeight(c.obj.position.x, c.obj.position.z) + 0.05; }
     });
 
-    // la pieuvre vit dans un trou au pied d'un massif
+    // the octopus lives in a hole at the foot of a massif
     var om = M[7] || M[1];
     var ox = om.x + 9, oz = om.z + 7;
     var oct = buildOctopus(2.1);
@@ -4242,7 +4242,7 @@
     }
   }
 
-  /* ---------- réactions aux prédateurs ---------- */
+  /* ---------- reactions to predators ---------- */
   function sharkBump(c) {
     player.stun = 1.1;
     flashSting = 1;
@@ -4268,7 +4268,7 @@
     G.time += 2;
   }
 
-  /* ---------- petits effets : bulles, éclats ---------- */
+  /* ---------- small effects: bubbles, sparks ---------- */
   var fx = [];
   function initFx() {
     for (var i = 0; i < 60; i++) {
@@ -4316,7 +4316,7 @@
   }
 
   /* ================================================================== */
-  /* LE JOUEUR ET LA CAMÉRA                                             */
+  /* THE PLAYER AND THE CAMERA                                          */
   /* ================================================================== */
   var UP = new THREE.Vector3(0, 1, 0);
   var player = {
@@ -4325,7 +4325,7 @@
   };
   var cam = { yaw: 0, pitch: -0.10, dist: 5.8, pos: new THREE.Vector3(), look: new THREE.Vector3(), baseFov: 62 };
   var keys = {}, mouseDX = 0, mouseDY = 0, dragging = false, locked = false;
-  var TOUCH = false;   // passe à vrai au premier appui : voir goTouch()
+  var TOUCH = false;   // becomes true on the first touch: see goTouch()
   var tmpA = new THREE.Vector3(), tmpB = new THREE.Vector3(), tmpC = new THREE.Vector3();
   var tmpD = new THREE.Vector3(), tmpE = new THREE.Vector3();
   var tmpM = new THREE.Matrix4(), tmpQ = new THREE.Quaternion();
@@ -4359,7 +4359,7 @@
     return false;
   }
 
-  /** Première intersection rayon/obstacle (sphère ou disque). -1 si aucune. */
+  /** First ray/obstacle hit (sphere or disc). -1 if none. */
   function rayHit(o, d, maxT, c) {
     var px = o.x - c.x, py = o.y - c.y, pz = o.z - c.z;
     if (c.h === undefined) {
@@ -4418,12 +4418,13 @@
     var speed = CFG.PLAYER_SPEED * (1 + player.dash * (CFG.DASH_MULT - 1));
     desired.multiplyScalar(speed);
 
-    /* Le courant emporte le joueur, mais ajouté à la vitesse **visée** plutôt
-       qu'à la position : en nageant on le compense sans y penser, à l'arrêt on
-       dérive avec l'eau. Volontairement faible (~0,35 u/s contre 15,5 de nage).
-       Nul à l'abri d'une anémone — c'est vrai physiquement, et surtout la quête
-       « reste caché 8 s » a un rayon de 6,5 u : une dérive constante l'aurait
-       fait échouer sans que le joueur comprenne pourquoi. */
+    /* The current carries the player, but added to the **target** velocity
+           rather than to the position: while swimming you compensate without
+           thinking about it, at a standstill you drift with the water.
+           Deliberately weak (~0.35 u/s against 15.5 of swimming). Zero inside an
+           anemone — which is true physically, and above all the "stay hidden for
+           8 s" quest has a 6.5 u radius: a constant drift would have made it fail
+           without the player understanding why. */
     var flow = inRefuge() ? 0 : CFG.CURRENT;
     var accel = desired.lengthSq() > 0.01 ? 3.4 : 1.9;
     player.vel.x = damp(player.vel.x, desired.x + U.uCurrent.value.x * flow, accel, dt);
@@ -4431,8 +4432,8 @@
     player.vel.z = damp(player.vel.z, desired.z + U.uCurrent.value.y * flow, accel, dt);
     player.pos.addScaledVector(player.vel, dt);
 
-    // --- obstacles : sphères (rochers, coraux) et disques (étagères)
-    // deux passes : dans un massif dense les obstacles se chevauchent
+    // --- obstacles: spheres (rocks, corals) and discs (shelves)
+    // two passes: inside a dense massif the obstacles overlap
     for (var pass = 0; pass < 2; pass++)
     for (var i = 0; i < world.colliders.length; i++) {
       var c = world.colliders[i];
@@ -4462,7 +4463,7 @@
         }
       }
     }
-    // --- sol et surface
+    // --- floor and surface
     var fy = floorHeight(player.pos.x, player.pos.z) + 1.0;
     if (player.pos.y < fy) { player.pos.y = fy; if (player.vel.y < 0) player.vel.y *= -0.15; }
     var maxY = CFG.WATER_Y - 1.4;
@@ -4470,7 +4471,7 @@
       player.pos.y = maxY;
       if (player.vel.y > 0) { player.vel.y *= -0.2; spawnFx(player.pos, 3, { speed: 1.4, size: 0.35 }); }
     }
-    // --- bord du récif : on est doucement ramené vers le récif
+    // --- edge of the reef: you are gently pulled back in
     var rad = Math.sqrt(player.pos.x * player.pos.x + player.pos.z * player.pos.z);
     if (rad > CFG.REEF_R) {
       var k = (rad - CFG.REEF_R) * 0.12;
@@ -4479,16 +4480,16 @@
       showHint(T('hint.edge'), 2.2);
     }
 
-    // --- orientation : le poisson suit sa vitesse, s'incline dans les virages
+    // --- orientation: the fish follows its velocity, banks into turns
     var sp = player.vel.length();
     var dir = tmpA;
     if (sp > 0.8) dir.copy(player.vel).divideScalar(sp);
     else camForward(dir);
-    /* Le virage se lit sur le **retard** d'un cap lissé par rapport au cap
-       réel. Avant, c'était `dYaw / dt` : une différence d'angle minuscule
-       divisée par un dt qui varie d'une image à l'autre, donc un signal qui
-       changeait de signe cinq fois par seconde (mesuré). Il pilote le roulis
-       et la courbure du corps — deux endroits où le bruit se voit. */
+    /* A turn is read from the **lag** of a smoothed heading behind the real
+           one. Before, it was `dYaw / dt`: a minute angle difference divided by a
+           dt that varies from frame to frame, hence a signal that changed sign
+           five times a second (measured). It drives the roll and the curve of the
+           body — two places where noise shows. */
     var yawNow = Math.atan2(dir.x, dir.z);
     if (player.headYaw === undefined) player.headYaw = yawNow;
     var dYaw = yawNow - player.headYaw;
@@ -4503,10 +4504,10 @@
     player.obj.quaternion.slerp(tmpQ, 1 - Math.exp(-9 * dt));
     player.obj.position.copy(player.pos);
 
-    // --- animation du corps
-    /* Cadence bornée : à pleine vitesse l'ancienne formule montait à 5 battements
-       par seconde, ce qui se lit comme un tremblement même avec une phase
-       propre. Une nage se lit vers 1,5–2 Hz, avec plus d'amplitude. */
+    // --- body animation
+    /* Bounded rate: at full speed the old formula reached 5 beats per second,
+           which reads as a tremor even with a clean phase. Swimming reads at about
+           1.5–2 Hz, with more amplitude. */
     var beat = 2.8 + Math.min(sp, 16) * 0.52 + player.dash * 3.2;
     var anim = player.obj.userData.body.userData.anim;
     anim.uSwaySpeed.value = beat;
@@ -4517,18 +4518,18 @@
     pect[0].rotation.z = 0.2 + Math.sin(player.flap) * 0.55;
     pect[1].rotation.z = -0.2 - Math.sin(player.flap + 0.4) * 0.55;
 
-    // --- bulles quand on fonce
+    // --- bubbles when you sprint
     if (player.dash > 0.55 && rnd() < dt * 26) {
       tmpA.copy(player.pos).addScaledVector(dir, -1.1);
       spawnFx(tmpA, 1, { speed: 0.7, size: 0.16, life: rr(0.6, 1.1), grow: 1.2 });
     }
 
-    // --- caméra suiveuse
+    // --- chase camera
     var fwd2 = camForward(tmpA);
     var side = tmpD.crossVectors(fwd2, UP).normalize();
     var want = tmpB.copy(player.pos).addScaledVector(fwd2, -cam.dist)
       .addScaledVector(UP, 0.85).addScaledVector(side, 0.95);
-    // si un obstacle est entre le poisson et la caméra, on raccourcit la perche
+    // if an obstacle sits between fish and camera, shorten the boom
     tmpE.copy(want).sub(player.pos);
     var maxD = tmpE.length() || 1;
     tmpE.divideScalar(maxD);
@@ -4554,7 +4555,7 @@
   }
 
   /* ================================================================== */
-  /* MISE À JOUR DU VIVANT                                              */
+  /* UPDATING EVERYTHING ALIVE                                          */
   /* ================================================================== */
   function updateSchools(dt) {
     for (var s = 0; s < world.schools.length; s++) {
@@ -4570,7 +4571,7 @@
         var off = f.userData.off;
         var wob = Math.sin(U.uTime.value * 1.4 + f.userData.ph) * 0.7;
         tmpA.set(cx + off.x + wob, cy + off.y + wob * 0.3, cz + off.z - wob);
-        // fuite si le joueur approche
+        // flee if the player comes close
         tmpB.copy(f.position).sub(player.pos);
         var d2 = tmpB.lengthSq();
         if (d2 < 90) {
@@ -4628,7 +4629,7 @@
   }
 
   /* ================================================================== */
-  /* SON (tout est synthétisé, aucun fichier)                           */
+  /* SOUND (all synthesised, no audio files)                            */
   /* ================================================================== */
   var SND = {
     ctx: null, master: null, muted: false, noiseBuf: null, ready: false,
@@ -4640,7 +4641,7 @@
       this.master = this.ctx.createGain();
       this.master.gain.value = 0.9;
       this.master.connect(this.ctx.destination);
-      // bruit brun pour l'ambiance
+      // brown noise for the ambience
       var len = this.ctx.sampleRate * 2;
       var buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
       var d = buf.getChannelData(0), last = 0;
@@ -4667,19 +4668,19 @@
       lfo.connect(lg); lg.connect(g.gain);
       src.connect(lp); lp.connect(g); g.connect(this.master);
       src.start(); lfo.start();
-      this.amb = { filt: lp };      // le courant ouvre un peu ce filtre
-      // nappe très grave
+      this.amb = { filt: lp };      // the current opens this filter a little
+      // very low pad
       var o = c.createOscillator(), og = c.createGain();
       o.type = 'sine'; o.frequency.value = 58; og.gain.value = 0.05;
       o.connect(og); og.connect(this.master); o.start();
     },
-    /* La voix du courant : du bruit brun passé dans un passe-bande, dont le
-       niveau, la brillance et la place dans le stéréo suivent le courant du
-       jeu. Aucun LFO ici, contrairement à l'ambiance : c'est justement le
-       point — si le son respirait tout seul, on entendrait une chose et on en
-       verrait une autre. Le passe-bande est large (Q 0,55) pour faire un
-       souffle et pas un sifflement, et il vit au-dessus des 320 Hz du lit
-       d'ambiance, donc les deux ne se marchent pas dessus. */
+    /* The voice of the current: brown noise through a band-pass whose level,
+           brightness and stereo position follow the current in the game. No LFO
+           here, unlike the ambience — and that is exactly the point: if the sound
+           breathed on its own, you would hear one thing and see another. The
+           band-pass is wide (Q 0.55) to make a rush rather than a whistle, and it
+           lives above the 320 Hz of the ambient bed, so the two do not tread on
+           each other. */
     currentVoice: function () {
       if (!this.ready) return;
       var c = this.ctx;
@@ -4696,14 +4697,14 @@
     },
 
     /**
-     * Suit le courant. `force` ∈ ~[0,1] (rafale comprise), `side` ∈ [-1,1] est
-     * sa direction par rapport à celle où l'on regarde.
-     * `setTargetAtTime` plutôt que des rampes : c'est une approche
-     * exponentielle, donc aucun clic même appelé en pleine glissade, et la
-     * constante de temps fait tout le lissage. Limité à ~8 fois par seconde,
-     * ce qui suffit largement pour des constantes d'une demi-seconde et évite
-     * d'empiler 60 événements d'automatisation par seconde et par paramètre.
-     */
+         * Follows the current. `force` ∈ ~[0,1] (gust included), `side` ∈ [-1,1]
+         * is its direction relative to where you are looking.
+         * `setTargetAtTime` rather than ramps: it is an exponential approach, so
+         * no click even when called mid-glide, and the time constant does all the
+         * smoothing. Limited to ~8 times a second, which is plenty for half-second
+         * constants and avoids piling up 60 automation events per second per
+         * parameter.
+         */
     setCurrent: function (force, side) {
       var C = this.cur;
       if (!C) return;
@@ -4714,12 +4715,12 @@
       C.gain.gain.setTargetAtTime(0.035 + f * 0.145, t, 0.5);
       C.filt.frequency.setTargetAtTime(330 + f * 560, t, 0.7);
       if (C.pan) C.pan.pan.setTargetAtTime(clamp(side, -1, 1) * 0.7, t, 0.6);
-      // le lit d'ambiance s'ouvre un peu dans les rafales : c'est ce qui fait
-      // entendre « l'eau bouge » plutôt que « un souffle par-dessus l'eau »
+      // the ambient bed opens a little during gusts: that is what makes you hear
+      // "the water is moving" rather than "a rush laid over the water"
       if (this.amb) this.amb.filt.frequency.setTargetAtTime(300 + f * 150, t, 1.1);
     },
 
-    /** Deux notes descendantes, douces : « il t'a perdu ». */
+    /** Two soft descending notes: "he has lost you". */
     safe: function () {
       if (!this.ready || this.muted) return;
       var c = this.ctx, t = c.currentTime;
@@ -4814,9 +4815,9 @@
   var elHud = $('#hud'), elPearls = $('#pearls b'), elClock = $('#clock'), elDepth = $('#depth');
   var elArrow = $('#arrow'), elHint = $('#hint'), elToast = $('#toast'), elFlash = $('#vignette-flash');
   var G = { state: 'title', pearls: 0, time: 0, hintT: 0, toastT: 0, bubbleT: 0,
-            /* Anti-répétition du « il t'a perdu de vue » : le rayon de refuge
-               est une sphère, et flotter sur son bord ferait entrer et sortir
-               plusieurs fois par seconde. */
+            /* Stops "he has lost sight of you" repeating: the shelter radius is a
+                           sphere, and hovering on its edge would take you in and out several
+                           times a second. */
             safeT: 0 };
 
   function showHint(txt, dur) {
@@ -4836,7 +4837,7 @@
     elClock.textContent = ((t / 60) | 0) + ':' + ('0' + (t % 60)).slice(-2);
     elDepth.textContent = '-' + Math.max(0, Math.round((CFG.WATER_Y - player.pos.y) * 0.35)) + ' m';
 
-    // flèche vers l'objectif courant
+    // arrow towards the current objective
     var best = arrowTarget();
     if (!best) { elArrow.style.opacity = 0; return; }
     tmpA.copy(best);
@@ -4860,7 +4861,7 @@
 
 
   /* ================================================================== */
-  /* OBJETS À RAMASSER                                                  */
+  /* COLLECTABLES                                                       */
   /* ================================================================== */
   function shellGeo(seed) {
     var g = new THREE.SphereGeometry(0.42, 16, 10, 0, TAU, 0, Math.PI * 0.55);
@@ -4923,7 +4924,7 @@
     return g;
   }
 
-  /** Un point est-il libre de tout obstacle ? */
+  /** Is this point clear of every obstacle? */
   function isClear(v, pad) {
     pad = pad || 1.2;
     for (var i = 0; i < world.colliders.length; i++) {
@@ -4935,7 +4936,7 @@
     }
     return true;
   }
-  /** Cherche un point dégagé autour d'un centre (sinon, en hauteur). */
+  /** Looks for a clear point around a centre (failing that, higher up). */
   function clearSpot(cx, cz, y, spread, pad) {
     for (var k = 0; k < 50; k++) {
       var a = rnd() * TAU, d = Math.sqrt(rnd()) * spread;
@@ -4966,7 +4967,7 @@
     for (var i = 0; i < world.pickups.length; i++) {
       var o = world.pickups[i];
       if (o.userData.taken) {
-        if (o.userData.pushT > 0) {                    // l'oursin poussé roule sur le sable
+        if (o.userData.pushT > 0) {                    // the pushed urchin rolls across the sand
           o.userData.pushT -= dt;
           o.position.addScaledVector(o.userData.push, dt);
           o.userData.push.multiplyScalar(1 - dt * 1.6);
@@ -4992,7 +4993,7 @@
   function takePickup(o) {
     o.userData.taken = true;
     var k = o.userData.kind;
-    if (k === 'urchin') {                              // poussé : il roule et s'éloigne
+    if (k === 'urchin') {                              // pushed: it rolls away
       o.userData.push = o.position.clone().sub(player.pos).setY(0.15).normalize().multiplyScalar(7);
       o.userData.pushT = 1.6;
       o.userData.halo.visible = false;
@@ -5007,7 +5008,7 @@
   }
 
   /* ================================================================== */
-  /* QUÊTES                                                             */
+  /* QUESTS                                                             */
   /* ================================================================== */
   var elDialog = $('#dialog'), elWho = $('#dialog .who'), elTxt = $('#dialog .txt');
   var elPrompt = $('#prompt'), elObj = $('#objective'), elJournal = $('#journal'), elJList = $('#journal-list');
@@ -5137,7 +5138,7 @@
     updateJournal();
   }
 
-  /** Une fois la première quête finie, tout le récif s'ouvre. */
+  /** Once the first quest is done, the whole reef opens up. */
   function unlockAll() {
     for (var i = 0; i < Q.defs.length; i++) {
       var d = Q.defs[i];
@@ -5147,16 +5148,16 @@
     if (cens && cens.state === 'locked' && Q.done >= 4) cens.state = 'available';
   }
 
-  /** Nom affiché d'un habitant ou d'un lieu — résolu au moment de l'affichage,
-      pour qu'un changement de langue renomme tout le monde d'un coup. */
+  /** Display name of an inhabitant or a place — resolved at display time, so
+      that a change of language renames everyone at once. */
   function npcName(o) { return o && o.nameKey ? T(o.nameKey) : T('jr.someone'); }
 
-  /** Quête proposée / à rendre par ce PNJ. */
+  /** Quest this NPC offers / is waiting to be told about. */
   function questForNpc(id) {
     for (var i = 0; i < Q.defs.length; i++) {
       var d = Q.defs[i];
       if (d.npc !== id) continue;
-      if (d.state === 'active' && d.progress >= d.target) return d;   // à rendre
+      if (d.state === 'active' && d.progress >= d.target) return d;   // to hand in
       if (d.state === 'available') return d;
     }
     return null;
@@ -5168,7 +5169,7 @@
   }
 
 
-  /* ---------- marqueurs au-dessus des PNJ ---------- */
+  /* ---------- markers above the NPCs ---------- */
   function markTexture(ch, col) {
     return canvasTex(64, function (g, s) {
       g.clearRect(0, 0, s, s);
@@ -5214,14 +5215,14 @@
   }
 
   /* ---------- dialogues ---------- */
-  // (les petites phrases d'ambiance vivent dans TXT, clés `idle.<pnj>`)
+  // (the small talk lives in TXT, under the `idle.<npc>` keys)
 
   function startDialog(c) {
     var q = questForNpc(c.id);
     var mode = 'idle', lines;
-    /* Les lignes sont fabriquées par une fonction gardée sur le dialogue, et
-       pas seulement copiées : changer de langue au milieu d'une conversation
-       doit pouvoir les réécrire. */
+    /* The lines are built by a function kept on the dialogue, not merely
+           copied: changing language in the middle of a conversation has to be able
+           to rewrite them. */
     var linesFor = function () {
       if (q && q.state === 'available') return q.lines();
       if (q && q.state === 'active') return q.doneLines();
@@ -5302,10 +5303,10 @@
     }
   };
 
-  /* ---------- suivi des quêtes ---------- */
+  /* ---------- quest tracking ---------- */
   function updateQuests(dt) {
     var q;
-    // escorte du bébé tortue
+    // escorting the baby turtle
     q = Q.byId.escort;
     if (q && q.state === 'active' && Q.babyTurtle && q.progress < 1) {
       var d = Q.babyTurtle.obj.position.distanceTo(world.places.dropoff);
@@ -5319,7 +5320,7 @@
         refreshObjective(true); updateJournal();
       }
     }
-    // se cacher dans une anémone
+    // hiding in an anemone
     q = Q.byId.hide;
     if (q && q.state === 'active' && q.progress < 1) {
       if (inRefuge()) {
@@ -5373,7 +5374,7 @@
     } else elPrompt.classList.remove('on');
   }
 
-  /* ---------- journal et objectif ---------- */
+  /* ---------- journal and objective ---------- */
   function stripTags(h) { return String(h).replace(/<[^>]*>/g, ''); }
   function updateJournal() {
     var html = '';
@@ -5413,7 +5414,7 @@
       elObj.classList.add('on');
     }
   }
-  /** Cible de la flèche dorée. */
+  /** What the golden arrow points at. */
   function arrowTarget() {
     var q = Q.active;
     if (!q) {
@@ -5444,7 +5445,7 @@
   }
 
   /* ================================================================== */
-  /* RÈGLES DU JEU                                                      */
+  /* GAME RULES                                                         */
   /* ================================================================== */
   function sting(j) {
     player.stun = 0.9;
@@ -5475,7 +5476,7 @@
     if (SND.ctx && SND.ctx.state === 'suspended') SND.ctx.resume();
     G.state = 'play'; G.time = 0; G.pearls = 0;
     elPearls.textContent = '0';
-    // on repart de zéro : objets et quêtes
+    // start over: items and quests
     for (var i = 0; i < world.pickups.length; i++) scene.remove(world.pickups[i]);
     world.pickups.length = 0;
     if (Q.babyTurtle) {
@@ -5529,17 +5530,17 @@
     el.addEventListener('mousedown', function () {
       if (Q.dialog) { advanceDialog(); return; }
       dragging = true;
-      /* Pas de verrouillage du pointeur au doigt : il n'y a pas de pointeur à
-         verrouiller, et l'appel échoue à chaque appui.
-         Depuis Chrome 116 la méthode renvoie une **promesse**, et un
-         `try/catch` ne l'attrape pas : le refus (ré-verrouillage trop rapide,
-         document non focalisé) ressortait en « Uncaught (in promise) » dans la
-         console de qui ouvrait la page. Rien de cassé, mais une erreur visible
-         dans une page qu'on partage, c'est une erreur de trop. */
+      /* No pointer lock on touch: there is no pointer to lock, and the call
+                 fails on every tap.
+                 Since Chrome 116 the method returns a **promise**, and a `try/catch`
+                 does not catch it: the refusal (re-locking too fast, document not
+                 focused) surfaced as "Uncaught (in promise)" in the console of
+                 whoever opened the page. Nothing broken, but a visible error in a
+                 page you are sharing is one error too many. */
       if (G.state === 'play' && !locked && !TOUCH && el.requestPointerLock) {
         var pl;
         try { pl = el.requestPointerLock(); } catch (err) { pl = null; }
-        if (pl && pl.catch) pl.catch(function () { /* refusé : on garde le glissé */ });
+        if (pl && pl.catch) pl.catch(function () { /* refused: we keep the drag */ });
       }
     });
     window.addEventListener('mouseup', function () { dragging = false; });
@@ -5555,7 +5556,7 @@
       e.preventDefault();
     }, { passive: false });
 
-    // ---- tactile : glisser pour regarder + un gros bouton NAGER
+    // ---- touch: drag to look + one big SWIM button
     var tid = null, tx = 0, ty = 0;
     el.addEventListener('touchstart', function (e) {
       goTouch();
@@ -5573,10 +5574,10 @@
     }, { passive: false });
     el.addEventListener('touchend', function () { tid = null; }, { passive: true });
 
-    // L'invite et la bulle de dialogue prennent le rôle de la touche E et de la
-    // barre d'espace. `click` plutôt que `touchstart` : le navigateur le
-    // synthétise sur un appui court, et ça garde le clic souris pour un
-    // ordinateur à écran tactile.
+    // The prompt and the dialogue bubble take on the role of the E key and the
+    // space bar. `click` rather than `touchstart`: the browser synthesises it
+    // on a short tap, and it keeps the mouse click working on a
+    // touchscreen computer.
     elPrompt.addEventListener('click', function (e) {
       e.stopPropagation();
       if (G.state !== 'play') return;
@@ -5617,16 +5618,16 @@
       { v: T(QUALITY === 2 ? 'hud.qHigh' : QUALITY === 1 ? 'hud.qMid' : 'hud.qLow') });
   }
 
-  /* Basculer en mode tactile est irréversible dans une partie, et c'est voulu :
-     un appui au doigt prouve qu'il y a un écran tactile, alors qu'un ordinateur
-     portable tactile peut très bien repasser au clavier — retirer les boutons
-     dès qu'une touche est pressée les ferait clignoter. */
+  /* Switching to touch mode is irreversible within a session, and that is
+       deliberate: a tap proves there is a touchscreen, whereas a touch laptop may
+       well go back to the keyboard — removing the buttons as soon as a key is
+       pressed would make them flicker. */
   function goTouch() {
     if (TOUCH) return;
     TOUCH = true;
     document.body.classList.add('touch');
     addSwimButton();
-    if (Q.dialog) showDialogLine();   // ré-écrit « Espace » en « Touchez »
+    if (Q.dialog) showDialogLine();   // rewrites "Space" as "Tap"
   }
 
   function addSwimButton() {
@@ -5647,7 +5648,7 @@
   }
 
   /* ================================================================== */
-  /* PLAN D'OUVERTURE (écran-titre)                                     */
+  /* OPENING SHOT (title screen)                                        */
   /* ================================================================== */
   function updateTitle(dt) {
     var t = U.uTime.value;
@@ -5689,7 +5690,7 @@
       u.uPix.value = H * pixelScale * 0.00055;
     }
     world.rays.rotation.y += dt * 0.007;
-    // les sources de bulles crachent en continu
+    // the bubble vents puff continuously
     if (world.vents.length && rnd() < dt * 14) {
       var v = world.vents[(rnd() * world.vents.length) | 0];
       if (v.distanceToSquared(camera.position) < 3600) {
@@ -5698,10 +5699,10 @@
     }
   }
 
-  /* Le courant tourne lentement et respire, sans jamais s'annuler : une eau
-     immobile fait un décor mort, un courant qui s'inverse d'un coup fait
-     claquer toute la végétation. Deux sinusoïdes de périodes incommensurables
-     (41 s et 67 s) suffisent à ce qu'on ne devine pas la boucle. */
+  /* The current turns slowly and breathes, without ever dying: still water
+       makes dead scenery, and a current that flips all at once cracks the whole
+       vegetation like a whip. Two sine waves with incommensurable periods (41 s
+       and 67 s) are enough that you cannot pick out the loop. */
   var CUR = { ang: 0.6, beat: 0 };
   var _curF = new THREE.Vector3(), _curR = new THREE.Vector3();
   function updateCurrent(dt) {
@@ -5710,27 +5711,27 @@
     var force = 0.62 + Math.sin(t / 23 + 0.7) * 0.20 + Math.sin(t / 13.5) * 0.09;
     var cx = Math.cos(CUR.ang) * force, cz = Math.sin(CUR.ang) * force;
     U.uCurrent.value.set(cx, cz);
-    // intégrale du courant : c'est elle que suivent les particules, pour
-    // qu'un changement de force ne les fasse pas sauter d'un coup.
+    // integral of the current: this is what the particles follow, so that
+    // a change of strength does not make them jump all at once.
     U.uDrift.value.x += cx * dt * 2.6;
     U.uDrift.value.y += cz * dt * 2.6;
 
-    /* ---- et ce qu'on en entend ----
-       La rafale est recalculée ici avec **la formule du shader**, à la position
-       du joueur : `REEF.soft` ondule à 1,15 rad/s et sa rafale voyage avec le
-       courant. Recopier la formule est le prix à payer pour que l'oreille et
-       l'œil parlent de la même vague — une enveloppe sonore indépendante aurait
-       été plus simple et aurait sonné faux, en gonflant quand les coraux se
-       redressent. */
+    /* ---- and what you hear of it ----
+           The gust is recomputed here with **the shader's own formula**, at the
+           player's position: `REEF.soft` sways at 1.15 rad/s and its gust travels
+           with the current. Copying the formula is the price of having ear and eye
+           talk about the same wave — an independent audio envelope would have been
+           simpler and would have rung false, swelling just as the corals
+           straighten up. */
     if (!SND.ready) return;
     CUR.beat += dt * 1.15;
     var trav = (player.pos.x * cx + player.pos.z * cz) * 0.09;
     var gust = 0.60 + 0.40 * Math.sin(CUR.beat * 0.29 - trav);
-    // de quel côté ça souffle, par rapport à là où l'on regarde
+    // which side it is blowing from, relative to where you are looking
     camForward(_curF);
     _curR.crossVectors(_curF, UP).normalize();
-    // /0,75 et pas /0,62 : à 0,62 les rafales fortes tapaient dans le plafond
-    // du clamp et sonnaient toutes pareil.
+    // /0.75 and not /0.62: at 0.62 the strong gusts hit the ceiling of the
+    // clamp and all sounded the same.
     SND.setCurrent(force * gust / 0.75, cx * _curR.x + cz * _curR.z);
   }
 
@@ -5747,10 +5748,10 @@
     for (var ai = 0; ai < ANIMS.length; ai++) {
       var an = ANIMS[ai];
       an.uBeat.value += dt * an.uSwaySpeed.value;
-      /* La phase est repliée pour qu'un `float` de shader garde sa précision :
-         au bout d'une heure, `uBeat` atteindrait ~20 000 et un float 32 bits
-         n'a plus assez de mantisse pour distinguer deux images — l'animation
-         se figerait par paliers. Replier sur un multiple de 2π est invisible. */
+      /* The phase is wrapped so a shader `float` keeps its precision: after an
+               hour `uBeat` would reach ~20,000, and a 32-bit float no longer has
+               enough mantissa to tell two frames apart — the animation would freeze
+               into steps. Wrapping on a multiple of 2π is invisible. */
       if (an.uBeat.value > 6283.18) an.uBeat.value -= 6283.18;
     }
     G.safeT = Math.max(0, G.safeT - dt);
@@ -5781,7 +5782,7 @@
     updateWorldFx(dt);
     renderFrame(dt);
 
-    // baisse la qualité tout seul si la machine souffre
+    // drops the quality by itself if the machine is struggling
     if (!autoDropped && QUALITY > 0) {
       frameAcc += dt; frameN++;
       if (frameN >= 150) {
@@ -5795,7 +5796,7 @@
   }
 
   /* ================================================================== */
-  /* DÉMARRAGE                                                          */
+  /* START-UP                                                           */
   /* ================================================================== */
   function init() {
     initRenderer();

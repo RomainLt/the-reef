@@ -1,255 +1,240 @@
-# Le Récif
+# The Reef
 
-> **In English** — *The Reef* is a small underwater exploration game that runs in the
-> browser: you play a clownfish, eight reef neighbours each give you a quest. No install,
-> no build step — open `index.html`, or play it online. The game is bilingual; use the
-> **FR / EN** button in the bottom-right corner. The notes below are in French.
+An underwater exploration game set in a coral reef, with a renderer written by hand:
+soft wrapped light, cast sun shadows, animated caustics and occlusion baked into the
+vertices. You play a small clownfish; eight reef neighbours each give you a quest.
 
+No rendering library is used beyond three.js, which serves here only as a WebGL layer:
+every surface is a `ShaderMaterial` written for this game.
 
-Un jeu d'exploration sous-marine dans un récif de corail, avec un moteur de rendu écrit
-à la main : lumière douce enveloppante, ombres portées du soleil, caustiques animées et
-occlusion cuite dans les sommets. Tu incarnes un poisson-clown ; huit habitants du récif
-te confient chacun une mission.
+## Running it
 
-Aucune bibliothèque de rendu n'est utilisée au-delà de three.js, qui ne sert ici que de
-couche WebGL : toutes les matières sont des `ShaderMaterial` écrits pour ce jeu.
+Double-click `index.html` (or open it in your browser). That is all.
+An internet connection is needed on first load: three.js and the font come from a CDN.
 
-## Lancer le jeu
+### Letting somebody on the same Wi-Fi play
 
-Double-clique sur `index.html` (ou ouvre-le dans ton navigateur). C'est tout.
-Une connexion internet est nécessaire au premier chargement : three.js et la police
-sont récupérés depuis un CDN.
-
-### Faire jouer quelqu'un sur le même Wi-Fi
-
-`file://` ne se partage pas : il faut une adresse. Le dépôt contient pour ça un
-serveur de fichiers sans aucune dépendance — rien à installer, `node` suffit.
+`file://` cannot be shared: you need an address. The repository contains a file server
+for that, with no dependencies at all — nothing to install, `node` is enough.
 
 ```sh
-node serve.mjs            # privé   : http://localhost:5173
-node serve.mjs --host     # partagé : ouvert au réseau local
+node serve.mjs            # private : http://localhost:5173
+node serve.mjs --host     # shared  : open to the local network
 ```
 
-(ou `npm run dev` / `npm run share`, qui appellent exactement ces deux lignes.)
+(or `npm run dev` / `npm run share`, which call exactly those two lines.)
 
-En mode `--host`, le serveur liste les adresses de la machine et **désigne celle
-à transmettre** : une machine de développement en a souvent trois — la carte
-Wi-Fi, le pont d'une machine virtuelle, le tunnel d'un VPN — et une seule est
-joignable par le téléphone d'à côté. Les autres sont affichées en grisé plutôt
-que cachées, parce qu'il arrive que le VPN soit justement le bon.
+In `--host` mode the server lists the machine's addresses and **points at the one to
+share**: a development machine often has three — the Wi-Fi card, a virtual machine's
+bridge, a VPN tunnel — and only one is reachable from the phone next to you. The others
+are shown greyed out rather than hidden, because sometimes the VPN is the right one.
 
-Ne transmets jamais `localhost` : chez l'autre, ce mot désigne sa propre machine.
+Never share `localhost`: on somebody else's machine that word means their own computer.
 
-Chaque requête est ensuite journalisée avec l'adresse du demandeur, `+` marquant
-un nouvel appareil. C'est ce qui permet de trancher le « je ne vois rien » : soit
-la requête arrive et le problème est dans la page, soit elle n'arrive jamais et
-le problème est le réseau.
+Every request is then logged with the caller's address, `+` marking a new device. That is
+what settles "I see nothing": either the request arrives and the problem is in the page,
+or it never arrives and the problem is the network.
 
-Trois choses qui font échouer le partage :
+Three things that make sharing fail:
 
-- macOS demande d'autoriser les connexions entrantes au premier lancement ;
-- les Wi-Fi « invité » isolent souvent les appareils les uns des autres — les
-  deux sont sur le même réseau mais ne se voient pas ;
-- la page va chercher three.js sur cdnjs : il faut **Internet**, pas seulement
-  le Wi-Fi.
+- macOS asks you to allow incoming connections the first time;
+- guest Wi-Fi often isolates devices from one another — both are on the same network but
+  cannot see each other;
+- the page fetches three.js from cdnjs: it needs **the internet**, not just Wi-Fi.
 
-Pour un lien accessible hors du réseau local, il faut un tunnel :
-`cloudflared tunnel --url http://localhost:5173`, ou ngrok.
+For a link that works outside the local network you need a tunnel:
+`cloudflared tunnel --url http://localhost:5173`, or ngrok.
 
-Options : `--port 8080` pour changer de port (si le port est pris, le suivant est
-essayé, comme Vite), `--no-open` pour ne pas ouvrir le navigateur.
+Options: `--port 8080` to change port (if the port is taken the next one is tried, as Vite
+does), `--no-open` to skip opening the browser.
 
 ## Français / English
 
-Le jeu est bilingue. Il choisit la langue du navigateur au premier lancement, et
-le bouton **FR / EN** en bas à droite bascule à tout moment — y compris en pleine
-partie : les dialogues, le journal et l'objectif en cours se réécrivent. Le choix
-est retenu d'une visite à l'autre.
+The game is bilingual. It picks the browser's language on first load, and the **FR / EN**
+button in the bottom-right corner switches at any time — mid-game included: the dialogue,
+the journal and the current objective are rewritten. The choice is remembered between
+visits.
 
-Toutes les chaînes vivent dans un seul objet `TXT` en haut du script, une paire
-`['français', 'english']` par ligne, pour que les deux versions se lisent côte à
-côte et qu'une traduction qui dérive se voie. Rien n'est écrit en dur, pas même
-le français : la langue par défaut se mettrait sinon à diverger du dictionnaire
-dès la première retouche. Les textes fixes de la page portent un attribut
-`data-i18n` ; le reste passe par `T('clé', { trou: valeur })`.
+Every string lives in a single `TXT` object at the top of the script, one
+`['français', 'english']` pair per line, so that the two versions read side by side and a
+translation that drifts shows up. Nothing is hard-coded, not even the French: otherwise
+the default language starts drifting from the dictionary the first time anyone edits it.
+Fixed text on the page carries a `data-i18n` attribute; everything else goes through
+`T('key', { hole: value })`.
 
-La fonction s'appelle `T` et non `t` parce que `t` sert de variable locale à
-cinquante-trois endroits du fichier (temps, interpolation, compteur de boucle) —
-une globale `t` y serait masquée sans un mot d'erreur.
+The function is called `T` and not `t` because `t` is a local variable in fifty-three
+places in this file (time, interpolation, loop counter) — a global `t` would be shadowed
+there without a word of warning.
 
-## Commandes
+## Controls
 
-| Touche | Action |
+| Key | Action |
 |---|---|
-| `Z Q S D` / `W A S D` / flèches | nager |
-| Souris (glisser, ou clic pour capturer) | regarder |
-| `Maj` | accélérer |
-| `Espace` / `Ctrl` | monter / descendre |
-| `E` | parler à un habitant |
-| `J` | ouvrir le journal de quêtes |
-| Molette | éloigner ou rapprocher la caméra |
-| `P` / `Échap` | pause |
+| `W A S D` / `Z Q S D` / arrows | swim |
+| Mouse (drag, or click to capture) | look around |
+| `Shift` | sprint |
+| `Space` / `Ctrl` | rise / dive |
+| `E` | talk to an inhabitant |
+| `J` | open the quest journal |
+| Wheel | pull the camera in or out |
+| `P` / `Esc` | pause |
 
-**Sur téléphone ou tablette**, le premier appui fait basculer l'interface : glisser
-pour regarder, un bouton **NAGER** en bas à gauche, et l'invite « parler à … »
-devient elle-même le bouton — au doigt il n'y a pas de touche `E`. La bulle de
-dialogue s'avance en la touchant, et l'interface se réorganise sous 760 px de
-large pour que rien ne se recouvre.
+**On a phone or tablet**, the first tap switches the interface over: drag to look, a
+**SWIM** button in the bottom-left corner, and the "talk to …" prompt becomes the button
+itself — there is no `E` key under a finger. The dialogue bubble advances when you touch
+it, and the interface rearranges below 760 px wide so that nothing overlaps.
 
-## Le récif et ses habitants
+## The reef and its inhabitants
 
-Huit habitants confient chacun une mission. Un `!` doré au-dessus de la tête signale
-une quête à prendre, un `?` une quête à rendre ; la flèche dorée pointe toujours
-l'objectif courant, et `J` ouvre le journal.
+Eight inhabitants each give you a quest. A golden `!` above a head means a quest to take,
+a `?` one to hand in; the golden arrow always points at the current objective, and `J`
+opens the journal.
 
-| Habitant | Quête |
+| Inhabitant | Quest |
 |---|---|
-| Doria, le chirurgien bleu | retrouver les 12 perles de nacre |
-| Ballon, le poisson-globe | déloger 3 oursins de son corail |
-| Sheldon, l'hippocampe | récupérer 5 coquillages dans la forêt de laminaires |
-| Pêche, l'étoile de mer | guider un bébé tortue jusqu'au tombant |
-| Gill, l'idole des Maures | se cacher dans une anémone pendant que le requin passe |
-| Jacques, la crevette | rapporter le trésor de l'épave |
-| Perle, la pieuvre | voler la perle noire à la murène |
-| Pince, le crabe | recenser 8 espèces différentes |
+| Doria, the blue tang | find the 12 scattered pearls |
+| Balloon, the pufferfish | push 3 urchins off his coral |
+| Sheldon, the seahorse | recover 5 shells from the kelp forest |
+| Peach, the starfish | guide a baby turtle to the drop-off |
+| Gill, the moorish idol | hide in an anemone while the shark goes past |
+| Jacques, the cleaner shrimp | bring back the treasure from the wreck |
+| Pearl, the octopus | steal the black pearl from the moray |
+| Nipper, the crab | count 8 different species |
 
-Côté faune, le récif est aussi habité par un **grand requin blanc** et un **requin-marteau**
-qui patrouillent au large du tombant (ils foncent si on s'expose — une anémone **coupe** la
-poursuite : le requin perd sa trace, la teinte rouge de l'eau se vide, et il repart vers le
-large en nageant ; on garde une seconde et demie de répit en ressortant),
-une **raie** qui planera au-dessus des massifs, des **tortues**, des **bancs** de sept espèces,
-des **méduses**, des **crabes**, des **anguilles de jardin** qui rentrent dans le sable quand
-on approche, des **bénitiers** qui se referment, une **murène** dans sa grotte, et une
-**baleine** qui traverse le grand bleu de loin en loin.
+The reef is also home to a **great white shark** and a **hammerhead** patrolling out past
+the drop-off (they charge if you expose yourself — an anemone **cuts** the chase: the
+shark loses your trail, the red tint drains out of the water, and it swims back towards
+open water; you keep a second and a half of grace on the way out), a **ray** gliding over
+the massifs, **turtles**, **schools** of seven species, **jellyfish**, **crabs**,
+**garden eels** that duck into the sand as you approach, **giant clams** that snap shut, a
+**moray** in its cave, and a **whale** that crosses the open blue now and then.
 
-Six lieux ont leur propre ambiance lumineuse (la couleur de l'eau, la brume et les caustiques
-se déplacent avec le joueur) : **le tombant** vers le grand bleu, **la forêt de laminaires**,
-**l'épave**, **la grotte de la murène**, **le jardin d'anémones** (la maison) et
-**les sources de bulles**.
+Six places have their own light mood (the colour of the water, the haze and the caustics
+travel with the player): **the drop-off** into the open blue, **the kelp forest**,
+**the wreck**, **the moray's cave**, **the anemone garden** (home) and **the bubble vents**.
 
-## Ce qu'il y a sous le capot
+## What is under the hood
 
-Tout est dans `index.html` (un seul fichier, aucune dépendance à installer).
-three.js sert uniquement de couche WebGL : la géométrie et les shaders sont maison.
+Everything is in `index.html` (one file, no dependency to install). three.js is only a
+WebGL layer: the geometry and the shaders are written here.
 
-**Le rendu** cherche le rendu des décors du film — pas du cel-shading : aucun trait
-d'encre, tout se joue sur la douceur de la lumière et la profondeur des creux.
+**The rendering** aims at the look of the film's sets — not cel shading: no ink lines at
+all, everything rests on the softness of the light and the depth of the hollows.
 
-- **Ombres portées du soleil** : une passe de profondeur orthographique (2048², qui suit le
-  joueur et s'aligne sur la grille de texels pour ne pas scintiller) ; les coraux, la roche et
-  les animaux projettent une vraie ombre, et les caustiques sont bloquées avec la lumière.
-- `softShade()` : diffuse enveloppante (`dot(N,L)*0.42+0.58` élevée à une puissance) au lieu
-  de paliers francs, ambiance hémisphérique (turquoise du dessus, rebond chaud du sable
-  dessous), reflet large, liseré discret, et translucidité (`sss`) pour les tentacules
-  et les nageoires que la lumière traverse.
-- **Occlusion cuite dans la géométrie** : chaque sommet porte un attribut `aOcc` calculé
-  à la construction — dessous des plateaux, creux entre les bosses d'un corail
-  (`occBySpheres`), fond des sillons d'un corail cerveau, base des props. C'est ce qui
-  donne les noirs profonds du film là où la lumière n'entre pas.
-- **Ombres de contact** : un disque dégradé sous chaque corail, posé sur la roche ou
-  épousant le relief du sable, tout fusionné en un seul maillage transparent.
-- `caustics()` : réseau de veines lumineuses (les crêtes d'une somme de sinusoïdes),
-  appliqué sur *tous* les objets, pondéré par l'orientation de la normale.
-- **L'eau** : un dôme dégradé en fond (bleu profond en bas, turquoise vers la surface),
-  absorption exponentielle qui bleuit le lointain, surface vue d'en dessous avec réseau
-  de rides et disque solaire, et rayons de lumière volumétriques.
-- **Post-traitement** : bloom en trois passes, **profondeur de champ** (le lointain se dilue,
-  pilotée par la texture de profondeur), **rayons de soleil** en flou radial vers le soleil,
-  courbe filmique, étalonnage, anticrénelage, vignettage, léger flottement liquide et
-  teinte rouge quand un prédateur fonce.
-- **Micro-relief** : la normale est perturbée par du bruit dans le plan tangent (`uBump`),
-  ce qui donne du grain aux coraux et à la roche sans un triangle de plus.
+- **Cast sun shadows**: an orthographic depth pass (2048², following the player and
+  snapped to the texel grid so it does not shimmer); corals, rock and animals all cast a
+  real shadow, and the caustics are blocked along with the light.
+- `softShade()`: wrapped diffuse (`dot(N,L)*0.42+0.58` raised to a power) instead of hard
+  steps, hemispheric ambient (turquoise from above, a warm bounce off the sand below), a
+  broad highlight, a discreet rim, and translucency (`sss`) for the tentacles and fins
+  that light passes through.
+- **Occlusion baked into the geometry**: every vertex carries an `aOcc` attribute computed
+  at build time — undersides of plates, hollows between the lumps of a coral
+  (`occBySpheres`), the bottom of a brain coral's grooves, the base of each prop. That is
+  what gives the deep blacks of the film where light does not reach.
+- **Contact shadows**: a graded disc under each coral, laid on the rock or following the
+  shape of the sand, all merged into a single transparent mesh.
+- `caustics()`: a net of bright veins (the ridges of a sum of sine waves), applied to
+  *every* object, weighted by the orientation of the normal.
+- **The water**: a graded dome in the background (deep blue at the bottom, turquoise
+  towards the surface), exponential absorption turning the distance blue, the surface seen
+  from underneath with a ripple net and a sun disc, and volumetric god rays.
+- **Post-processing**: three-pass bloom, **depth of field** (the distance dissolves,
+  driven by the depth texture), **sun shafts** as a radial blur towards the sun, a filmic
+  curve, grading, anti-aliasing, vignetting, a slight liquid wobble and a red tint when a
+  predator charges.
+- **Micro-relief**: the normal is perturbed by noise in the tangent plane (`uBump`), which
+  gives grain to the corals and the rock without a single extra triangle.
 
-**Le courant** est un seul vecteur global (`U.uCurrent`, direction × force) qui tourne
-lentement — deux sinusoïdes de périodes incommensurables, 41 s et 67 s, pour qu'on ne
-devine pas la boucle. Toute la végétation s'y penche, avec des rafales qui *traversent* le
-récif, et une ondulation qui remonte chaque brin : c'est ce qui fait la différence entre
-un décor qui bouge et un décor qui bouge *ensemble*. Les particules suivent
-`U.uDrift`, l'intégrale du courant — les mêmes rafales emportent donc la poussière et
-penchent les coraux. Le joueur est poussé lui aussi, faiblement (0,35 u/s contre 15,5 de
-nage, et zéro à l'abri d'une anémone).
+**The current** is one global vector (`U.uCurrent`, direction × strength) turning slowly —
+two sine waves with incommensurable periods, 41 s and 67 s, so that you cannot pick out
+the loop. All the vegetation leans along it, with gusts that *travel across* the reef, and
+a ripple running up each strand: that is the difference between scenery that moves and
+scenery that moves *together*. The particles follow `U.uDrift`, the integral of the
+current — so the same gusts carry the dust and lean the corals. The player is pushed too,
+weakly (0.35 u/s against 15.5 of swimming, and zero inside an anemone).
 
-**L'anémone hôte** est celle du film, et pas au hasard : les brins sont des tubes arqués à
-bout hémisphérique, épais d'environ un dixième de leur longueur, plantés en spirale dorée
-sur un disque oral — plus longs au centre, plus couchés au bord, d'où le dôme. Le dégradé
-saumon → pêche → crème est cuit **le long du brin** et non selon la hauteur dans le monde,
-pour qu'un brin couché garde sa pointe claire ; le magenta est réservé à la colonne, qui
-porte ses plis verticaux. Chaque brin a sa propre phase et une souplesse (`aSway`) de 4,4
-là où une pointe de corail est à 1, ce qui lui donne ~15 % de sa longueur de course.
+**The host anemone** is the one from the film, and not by accident: the strands are curved
+tubes with hemispherical ends, about a tenth of their length in thickness, planted in a
+golden spiral on an oral disc — longer in the middle, more splayed at the rim, hence the
+dome. The salmon → peach → cream gradient is baked **along the strand** rather than by
+height in the world, so that a splayed strand keeps its pale tip; the magenta is reserved
+for the column, which carries its vertical folds. Each strand has its own phase and a
+softness (`aSway`) of 4.4 where a coral tip sits at 1, which gives it about 15% of its own
+length in travel.
 
-**Les anémones pompons** (celles semées partout, par centaines) ne pouvaient pas avoir
-les mêmes brins : elles sont **698** dans le récif et représentent à elles seules un quart
-de toute la géométrie posée — 594 000 triangles sur 2,42 millions, compté et pas estimé.
-Leur donner le brin de l'anémone hôte aurait coûté neuf millions de triangles.
+**The pompom anemones** (the ones scattered everywhere, by the hundred) could not have the
+same strands: there are **698** of them in the reef and they alone account for a quarter
+of all the geometry placed — 594,000 triangles out of 2.42 million, counted rather than
+guessed. Giving them the host anemone's strand would have cost nine million triangles.
 
-Ce qui trahit l'aiguille, c'est la pointe, pas le nombre de brins. Un tube à six faces
-dont seuls les quatorze derniers pour cent se referment coûte 36 triangles là où le cône
-à quatre faces en coûtait 8 — mais on peut alors se contenter de **trois fois moins de
-brins**, plus gros et plus courts, biaisés vers le haut du dôme (réparti sur toute la
-demi-sphère, il en dépassait un crâne chauve). Le dôme lui-même est passé de 10×7 à 7×4
-segments, ce qui paie la différence. Résultat mesuré : **587 500 triangles**, soit un peu
-moins qu'avant, pour une bête qui ressemble à une anémone et non plus à un oursin.
+What gives away a needle is the tip, not the number of strands. A six-sided tube whose
+last fourteen per cent are the only part that closes costs 36 triangles where the
+four-sided cone cost 8 — but you can then make do with **a third as many strands**, fatter
+and shorter, biased towards the top of the dome (spread over the whole hemisphere, a bald
+patch showed through). The dome itself went from 10×7 to 7×4 segments, which pays the
+difference. Measured result: **587,500 triangles**, slightly fewer than before, for a
+creature that looks like an anemone rather than a sea urchin.
 
-**On entend le courant.** Une seconde voix de bruit brun passe dans un passe-bande large
-(Q 0,55, 330 → 890 Hz) dont le niveau, la brillance et la place dans le stéréo suivent le
-courant : la rafale sonore est recalculée **avec la formule du shader**, à la position du
-joueur. Recopier cette formule est le prix à payer pour que l'oreille et l'œil parlent de
-la même vague — une enveloppe indépendante aurait été plus simple et aurait sonné faux, en
-gonflant pile quand les coraux se redressent. Corrélation mesurée entre la rafale visible
-et le gain entendu : **0,997**. Le panoramique s'inverse quand on se retourne, et le lit
-d'ambiance s'ouvre un peu dans les rafales, pour qu'on entende « l'eau bouge » plutôt
-qu'un souffle posé par-dessus. Les paramètres sont pilotés par `setTargetAtTime` (approche
-exponentielle, donc aucun clic) à 8 Hz plutôt qu'à chaque image.
+**You can hear the current.** A second voice of brown noise runs through a wide band-pass
+(Q 0.55, 330 → 890 Hz) whose level, brightness and stereo position follow the current: the
+audible gust is recomputed **with the shader's own formula**, at the player's position.
+Copying that formula is the price of having ear and eye talk about the same wave — an
+independent envelope would have been simpler and would have rung false, swelling just as
+the corals straighten up. Measured correlation between the visible gust and the audible
+gain: **0.997**. The stereo image flips when you turn around, and the ambient bed opens a
+little during gusts, so that you hear "the water is moving" rather than a rush laid over
+it. The parameters are driven by `setTargetAtTime` (an exponential approach, so no clicks)
+at 8 Hz rather than every frame.
 
-**Les phases d'animation sont accumulées** (`uBeat += dt × cadence`), jamais recalculées
-depuis `uTime × cadence`. Ça compte dès qu'une cadence varie : celle de la nage suit la
-vitesse du joueur, et le produit faisait sauter la phase de `uTime × Δcadence` d'une image
-à l'autre — un saut proportionnel à la durée de la partie, qui se voyait comme une
-vibration du corps. Mesuré : 0,89 rad de saut par image (et deux marches arrière par
-seconde) contre 0,18 rad d'avance régulière après correction.
+**Animation phases are accumulated** (`uBeat += dt × rate`), never recomputed from
+`uTime × rate`. That matters as soon as a rate varies: the swim rate follows the player's
+speed, and the product made the phase jump by `uTime × Δrate` from one frame to the next —
+a jump proportional to the length of the session, which showed up as the body shivering.
+Measured: 0.89 rad of jump per frame (and two steps backwards per second) against 0.18 rad
+of steady progress after the fix.
 
-**Le récif** est procédural et rejouable à l'identique (`CFG.SEED`). Sa grammaire vient
-des décors du film : des **massifs de plateaux de roche empilés** (gris-lavande, portés par
-des colonnes) entièrement encroûtés de coraux — choux-fleurs, cerveaux, branchus, éponges
-tubulaires à bouche sombre, anémones (pompons partout, hôtes autour de la maison),
-tables frangées, fouets de mer, gorgones,
-plateaux d'algues — semés par touffes d'une même espèce, avec des vallées de sable entre
-les massifs.
+**The reef** is procedural and reproducible (`CFG.SEED`). Its grammar comes from the
+film's sets: **massifs of stacked rock plates** (lavender-grey, held up by columns)
+entirely encrusted with coral — cauliflowers, brains, branching acropora, tube sponges
+with dark mouths, anemones (pompoms everywhere, host anemones around home), fringed
+tables, sea whips, sea fans, algae plates — sown in tufts of a single species, with sand
+valleys between the massifs.
 
-**Performance** : tout le décor statique d'un massif est fusionné (indexé) en 3 maillages
-— rigide / souple / feuilles double face — soit ~200 appels de dessin pour plusieurs
-milliers de coraux. La couleur, la phase d'ondulation et l'occlusion de chaque prop
-voyagent dans des attributs de sommets (`aColor`, `aPhase`, `aSway`, `aOcc`), ce qui permet
-de tout peindre avec **trois** matériaux.
+**Performance**: all the static scenery of a massif is merged (indexed) into 3 meshes —
+hard / soft / double-sided leaves — that is ~200 draw calls for several thousand corals.
+The colour, the sway phase and the occlusion of each prop travel in vertex attributes
+(`aColor`, `aPhase`, `aSway`, `aOcc`), which is what allows the whole scene to be painted
+with **three** materials.
 
-**Le son** est synthétisé à la volée avec l'API Web Audio (bruit brun filtré pour
-l'ambiance, arpèges pour les perles) — aucun fichier audio.
+**The sound** is synthesised on the fly with the Web Audio API (filtered brown noise for
+the ambience, arpeggios for the pearls) — no audio files at all.
 
-## Réglages utiles
+## Useful knobs
 
-En haut du script :
+At the top of the script:
 
 ```js
 var CFG = { WATER_Y: 54, REEF_R: 104, PEARLS: 12, JELLIES: 7,
             FOG_FAR: 152, SEED: 20260902, PLAYER_SPEED: 15.5, DASH_MULT: 2.05,
-            CURRENT: 0.55 };                            // poussée du courant
-var PAL = { sun: …, sky: …, mid: …, deep: …, occ: …,   // les creux
-            rock: 0x9c96a9,                            // gris-lavande des plateaux
+            CURRENT: 0.55 };                            // push of the current
+var PAL = { sun: …, sky: …, mid: …, deep: …, occ: …,   // the hollows
+            rock: 0x9c96a9,                            // lavender-grey of the plates
             coral: […], algae: […] };
 ```
 
-Change `SEED` pour générer un tout autre récif. Le bouton **Qualité** (en bas à droite)
-fait varier la résolution de rendu, le bloom et les traits d'encre ; le jeu baisse la
-qualité tout seul si la machine peine.
+Change `SEED` to generate an entirely different reef. The **Quality** button (bottom
+right) varies the render resolution, the bloom and the depth of field; the game lowers the
+quality by itself if the machine is struggling.
 
-Depuis la console du navigateur, `window.__reef` expose `scene`, `camera`, `player`, `world`,
-`U` (les uniforms partagés), `CFG`, `SND` (le moteur audio), `CUR` (l'état du courant),
-`LANG`, `T` et `setLang` — pratique pour bidouiller en direct, par exemple :
+From the browser console, `window.__reef` exposes `scene`, `camera`, `player`, `world`,
+`U` (the shared uniforms), `CFG`, `SND` (the audio engine), `CUR` (the state of the
+current), `LANG`, `T` and `setLang` — handy for poking at it live, for instance:
 
 ```js
-__reef.U.uCaustics.value = 3     // caustiques exagérées
-__reef.CFG.PLAYER_SPEED = 40     // poisson fusée
-__reef.U.uCurrent.value.set(3, 0)   // tempête (elle se rétablit en quelques secondes)
-__reef.SND.setCurrent(1.4, -1)      // souffle fort à gauche, pour entendre la voix seule
-__reef.setLang('en')                // bascule immédiate, journal compris
+__reef.U.uCaustics.value = 3        // exaggerated caustics
+__reef.CFG.PLAYER_SPEED = 40        // rocket fish
+__reef.U.uCurrent.value.set(3, 0)   // a storm (it settles again within seconds)
+__reef.SND.setCurrent(1.4, -1)      // a strong rush to the left, to hear the voice alone
+__reef.setLang('fr')                // switches at once, journal included
 ```

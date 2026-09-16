@@ -3,6 +3,22 @@
   "private": true,
   "version": "1.0.0",
   "description": "The Reef — a dive into a coral reef, in the browser",
+  "homepage": "https://romainlt.github.io/the-reef/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RomainLt/the-reef.git"
+  },
+  "bugs": {
+    "url": "https://github.com/RomainLt/the-reef/issues"
+  },
+  "keywords": [
+    "game",
+    "webgl",
+    "three.js",
+    "shaders",
+    "procedural",
+    "underwater"
+  ],
   "type": "module",
   "scripts": {
     "dev": "node serve.mjs",

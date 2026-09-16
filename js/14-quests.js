@@ -468,6 +468,10 @@ function win() {
 }
 
 function dive() {
+  /* On a phone, diving goes fullscreen. A browser only grants it from a user
+     gesture, and this click is one — asking for it later, once the reef is
+     built, would be refused. */
+  if (COARSE) enterFullscreen();
   SND.init();
   if (SND.ctx && SND.ctx.state === 'suspended') SND.ctx.resume();
   G.state = 'play'; G.time = 0; G.pearls = 0;

@@ -1,8 +1,14 @@
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Le Récif</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M8 32 L22 20 L22 44 Z' fill='%23e2542a'/%3E%3Cellipse cx='38' cy='32' rx='22' ry='17' fill='%23ff7a4d'/%3E%3Cpath d='M30 16 q5 16 0 32 q7 2 12 0 q-5 -16 0 -32 q-7 -2 -12 0Z' fill='%23fff6ec'/%3E%3Cpath d='M52 20 q9 12 0 24 q-4 -12 0 -24Z' fill='%23e2542a'/%3E%3Ccircle cx='54' cy='28' r='3.4' fill='%23231108'/%3E%3C/svg%3E">
 <meta name="theme-color" content="#06304a">
+<!-- Added to the home screen, the game opens with no URL bar. That is the only
+     road to fullscreen on iPhone, where the Fullscreen API is reserved for
+     <video>: the ⛶ button takes itself out of the corner there. -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap">
 <style>
@@ -16,6 +22,11 @@
     --sand:#ffe9bd;
     --panel:rgba(6,44,68,.62);
     --font:"Baloo 2","Trebuchet MS",Verdana,sans-serif;
+    /* Notch and home bar. `env()` is 0 everywhere else, so one rule serves
+       the desktop and the phone lying on its side alike. */
+    --safe-b:env(safe-area-inset-bottom,0px);
+    --safe-l:env(safe-area-inset-left,0px);
+    --safe-r:env(safe-area-inset-right,0px);
   }
   html,body{height:100%}
   body{margin:0;background:#03202f;overflow:hidden;font-family:var(--font);color:#eaffff;
@@ -87,12 +98,14 @@
   /* z-index 6, so ABOVE the screens (title, pause, victory, z-index 5): the
      title screen is exactly where a visitor looks for the language button, and
      it was hidden there. Sound becomes adjustable before diving, at no cost. */
-  #tools{position:fixed;right:14px;bottom:14px;display:flex;gap:9px;z-index:6}
+  #tools{position:fixed;right:calc(14px + var(--safe-r));bottom:calc(14px + var(--safe-b));
+         display:flex;gap:9px;z-index:6}
   #btn-lang{padding:8px 10px;letter-spacing:.5px}
   #btn-lang span{opacity:.42;font-weight:700}
   #btn-lang span.on{opacity:1;text-decoration:underline;text-underline-offset:3px}
   #btn-lang i{opacity:.42;font-style:normal;margin:0 4px}
   #tools button{margin:0;font-size:18px;padding:8px 14px;border-radius:14px;box-shadow:0 4px 0 var(--coral-dark)}
+  #tools button[hidden]{display:none}   /* display:flex on the parent would win otherwise */
   #tools button.off{background:linear-gradient(#9fc0cc,#6d8f9d);color:#0d2b39;box-shadow:0 4px 0 #3f6472}
   button:focus-visible,#swim:focus-visible{outline:3px solid var(--aqua);outline-offset:3px}
   @media (prefers-reduced-motion:reduce){
@@ -162,6 +175,14 @@
   body.touch #prompt.on:active{transform:translateX(-50%) translateY(3px);box-shadow:0 2px 0 #e2542a}
   body.touch #dialog.on{pointer-events:auto}
 
+  /* The touch stack now stands 208 px tall: 18 of margin + 108 (SWIM) + 10 of
+     gap + 72 (FAST). The hint sits 10 px above it, and the dialogue keeps the
+     72 px it already had between the two. These rules key on `body.touch`
+     rather than on a width: what decides is the presence of the buttons, not
+     the size of the window. */
+  body.touch #hint{bottom:calc(218px + var(--safe-b))}
+  body.touch #dialog{bottom:calc(290px + var(--safe-b))}
+
 </style>
 
 <div id="stage"></div>
@@ -192,6 +213,7 @@
   <button id="btn-lang" data-i18n-title="hud.langTip"><span id="lang-fr">FR</span><i>/</i><span id="lang-en">EN</span></button>
   <button id="btn-sound" data-i18n-title="hud.sound">🔊</button>
   <button id="btn-quality" data-i18n-title="hud.qualityTip"></button>
+  <button id="btn-full" data-i18n-title="hud.fullTip">⛶</button>
 </div>
 
 <div class="screen" id="title">

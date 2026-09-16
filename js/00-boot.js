@@ -75,6 +75,9 @@ var TXT = {
   'hud.accept':      ['accepter', 'accept'],
   'hud.close':       ['fermer', 'close'],
   'hud.swim':        ['NAGER', 'SWIM'],
+  'hud.fast':        ['VITE', 'FAST'],
+  'hud.fullTip':     ['Plein écran', 'Fullscreen'],
+  'hud.fullExitTip': ['Quitter le plein écran', 'Exit fullscreen'],
 
   // ---- journal and objectives ----
   'jr.empty':        ['Va parler aux habitants du récif.', 'Go and talk to the reef’s neighbours.'],
@@ -263,6 +266,8 @@ function setLang(code) {
   if (Q && Q.dialog) { Q.dialog.lines = Q.dialog.linesFor(); showDialogLine(); }
   var sw = document.getElementById('swim');
   if (sw) sw.textContent = T('hud.swim');
+  var fa = document.getElementById('dash');
+  if (fa) fa.textContent = T('hud.fast');
 }
 
 initLang();

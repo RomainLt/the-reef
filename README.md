@@ -81,9 +81,18 @@ shadowed there without a word of warning.
 | `P` / `Esc` | pause |
 
 **On a phone or tablet**, the first tap switches the interface over: drag to look, a
-**SWIM** button in the bottom-left corner, and the "talk to …" prompt becomes the button
-itself — there is no `E` key under a finger. The dialogue bubble advances when you touch
-it, and the interface rearranges below 760 px wide so that nothing overlaps.
+**SWIM** button in the bottom-left corner with a smaller **FAST** just above it, and the
+"talk to …" prompt becomes the button itself — there is no `E` key under a finger. FAST
+swims and sprints at once, because the dash only applies while moving forward and asking
+for a second thumb would make it useless exactly when it is wanted. The dialogue bubble
+advances when you touch it, and the interface rearranges below 760 px wide so that
+nothing overlaps.
+
+Diving goes fullscreen by itself on a touch device — a browser only grants it from a
+gesture, and that tap is one — and the ⛶ button in the corner toggles it either way. On
+iPhone the button is absent: Safari reserves the Fullscreen API for `<video>`, so the way
+to a full screen there is to add the page to the home screen, which the manifest meta
+tags already support.
 
 ## The reef and its inhabitants
 

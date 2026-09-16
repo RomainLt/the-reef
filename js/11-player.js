@@ -14,6 +14,11 @@ var player = {
 var cam = { yaw: 0, pitch: -0.10, dist: 5.8, pos: new THREE.Vector3(), look: new THREE.Vector3(), baseFov: 62 };
 var keys = {}, mouseDX = 0, mouseDY = 0, dragging = false, locked = false;
 var TOUCH = false;   // becomes true on the first touch: see goTouch()
+/* True on a device with no mouse. TOUCH cannot answer this question on the
+   title screen: it waits for a finger on the canvas, and the canvas is covered
+   there. This one is known from the first frame, which is what dive() needs to
+   decide whether to ask for fullscreen. */
+var COARSE = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
 var tmpA = new THREE.Vector3(), tmpB = new THREE.Vector3(), tmpC = new THREE.Vector3();
 var tmpD = new THREE.Vector3(), tmpE = new THREE.Vector3();
 var tmpM = new THREE.Matrix4(), tmpQ = new THREE.Quaternion();

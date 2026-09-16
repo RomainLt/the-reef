@@ -104,6 +104,15 @@ function bindInput() {
     initShadows();
     onResize();
   });
+  var full = $('#btn-full');
+  if (full) {
+    // A button that does nothing is worse than no button: see below.
+    if (!fullscreenSupported()) full.hidden = true;
+    else full.addEventListener('click', toggleFullscreen);
+  }
+  document.addEventListener('fullscreenchange', setFullscreenLabel);
+  document.addEventListener('webkitfullscreenchange', setFullscreenLabel);
+
   document.addEventListener('visibilitychange', function () {
     if (document.hidden && G.state === 'play') setPause(true);
   });
@@ -122,23 +131,105 @@ function goTouch() {
   if (TOUCH) return;
   TOUCH = true;
   document.body.classList.add('touch');
-  addSwimButton();
+  addTouchButtons();
   if (Q.dialog) showDialogLine();   // rewrites "Space" as "Tap"
 }
 
-function addSwimButton() {
+/* `swimHeld` guards one trap: when a finger leaves FAST while SWIM is still
+     pressed, clearing KeyW would stop the fish dead under the other thumb. */
+var swimHeld = false;
+
+function addTouchButtons() {
   if (document.getElementById('swim')) return;
+
+  var swim = touchPad('swim', T('hud.swim'), 108, 18);
+  hold(swim, function (on) { swimHeld = on; keys['KeyW'] = on; });
+
+  /* FAST presses KeyW as well. The dash only applies while swimming forward
+     (wantDash, 11-player.js), so a button that sent Shift alone would do
+     nothing unless a second thumb held SWIM — useless exactly when wanted. */
+  var dash = touchPad('dash', T('hud.fast'), 72, 136);
+  hold(dash, function (on) {
+    keys['ShiftLeft'] = on;
+    if (on) keys['KeyW'] = true;
+    else if (!swimHeld) keys['KeyW'] = false;
+  });
+}
+
+/** A round pad in the bottom-left corner. `bottom` is counted from the safe
+    area rather than the screen edge, so the home bar never sits on it. */
+function touchPad(id, label, size, bottom) {
   var b = document.createElement('div');
-  b.id = 'swim';
-  b.textContent = T('hud.swim');
-  b.setAttribute('style', 'position:fixed;left:18px;bottom:18px;z-index:4;width:108px;height:108px;' +
-    'border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;' +
+  b.id = id;
+  b.textContent = label;
+  b.setAttribute('style', 'position:fixed;z-index:4;' +
+    'left:calc(18px + var(--safe-l));bottom:calc(' + bottom + 'px + var(--safe-b));' +
+    'width:' + size + 'px;height:' + size + 'px;' +
+    'border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;' +
+    'font-size:' + (size > 90 ? 18 : 15) + 'px;' +
     'color:#3a1400;background:linear-gradient(#ffd08a,#ff7a4d);box-shadow:0 6px 0 #e2542a;' +
     'user-select:none;touch-action:none;font-family:"Baloo 2",sans-serif');
   document.body.appendChild(b);
-  function on(e) { keys['KeyW'] = true; e.preventDefault(); e.stopPropagation(); }
-  function off(e) { keys['KeyW'] = false; e.preventDefault(); e.stopPropagation(); }
-  b.addEventListener('touchstart', on, { passive: false });
-  b.addEventListener('touchend', off, { passive: false });
-  b.addEventListener('touchcancel', off, { passive: false });
+  return b;
+}
+
+/** Press and hold: down, then up — or `touchcancel`, when the system takes the
+    touch away for a call or a notification, which must release the key too. */
+function hold(b, set) {
+  function down(e) { set(true); e.preventDefault(); e.stopPropagation(); }
+  function up(e) { set(false); e.preventDefault(); e.stopPropagation(); }
+  b.addEventListener('touchstart', down, { passive: false });
+  b.addEventListener('touchend', up, { passive: false });
+  b.addEventListener('touchcancel', up, { passive: false });
+}
+
+/* ================================================================== */
+/* FULLSCREEN                                                         */
+/* ================================================================== */
+/* Safari on iPhone exposes none of this for anything but a <video>, so the
+   button takes itself out of the corner there rather than sitting and doing
+   nothing; on that device, adding the page to the home screen is the way in
+   (see the meta tags in index.html). */
+function fullscreenSupported() {
+  var d = document.documentElement;
+  return !!(d.requestFullscreen || d.webkitRequestFullscreen);
+}
+
+function isFullscreen() {
+  return !!(document.fullscreenElement || document.webkitFullscreenElement);
+}
+
+/* Like requestPointerLock, these return a **promise**, and a refusal nobody
+   catches surfaces as "Uncaught (in promise)" in the console of whoever opened
+   the page. Nothing is broken when it happens — we simply stay windowed. */
+function enterFullscreen() {
+  var d = document.documentElement;
+  var fn = d.requestFullscreen || d.webkitRequestFullscreen;
+  if (!fn) return;
+  var p;
+  try { p = fn.call(d, { navigationUI: 'hide' }); } catch (e) { p = null; }
+  if (p && p.catch) p.catch(function () { /* refused: windowed it is */ });
+}
+
+function leaveFullscreen() {
+  var fn = document.exitFullscreen || document.webkitExitFullscreen;
+  if (!fn) return;
+  var p;
+  try { p = fn.call(document); } catch (e) { p = null; }
+  if (p && p.catch) p.catch(function () { /* already out */ });
+}
+
+function toggleFullscreen() {
+  if (isFullscreen()) leaveFullscreen(); else enterFullscreen();
+}
+
+/* The glyph does not change — being fullscreen is obvious enough on screen.
+   The tooltip does, and `data-i18n-title` carries the key rather than the text
+   so that switching language keeps the right one. */
+function setFullscreenLabel() {
+  var b = $('#btn-full');
+  if (!b) return;
+  var key = isFullscreen() ? 'hud.fullExitTip' : 'hud.fullTip';
+  b.setAttribute('data-i18n-title', key);
+  b.title = T(key);
 }

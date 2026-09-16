@@ -437,7 +437,7 @@ function hostAnemoneGeo(seed, R, count) {
   for (var i = 0; i < count; i++) {
     var fr = (i + 0.5) / count;
     var rho = Rd * Math.sqrt(fr);                   // square root: even density
-    var a = i * 2.399963229728653 + R2() * 0.22;    // angle d'or : jamais d'alignement
+    var a = i * 2.399963229728653 + R2() * 0.22;    // golden angle: never an alignment
     // The strands in the middle are the longest and the straightest, those at
     // the rim the shortest and the most splayed: hence the dome.
     /* Proportions matter more than numbers: a strand in the film is about ten

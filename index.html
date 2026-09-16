@@ -63,9 +63,9 @@
   .box{max-width:min(600px,88vw);padding:30px 34px 26px;text-align:center}
   h1{margin:0;font-size:clamp(44px,9vw,86px);font-weight:800;line-height:.95;
      color:var(--sand);text-shadow:0 5px 0 var(--coral-dark),0 8px 22px rgba(0,0,0,.45);letter-spacing:1px}
-  /* Le sous-titre est sorti du <h1> : `data-i18n` écrit du textContent, ce qui
-     aurait effacé le <span> imbriqué. Il n'hérite donc plus du corps du titre,
-     d'où une taille explicite plutôt que l'ancien `.36em`. */
+  /* The subtitle was moved out of the <h1>: `data-i18n` writes textContent,
+     which would have wiped the nested <span>. It no longer inherits the title's
+     size, hence an explicit one rather than the old `.36em`. */
   .sub{display:block;font-size:clamp(16px,3.2vw,31px);font-weight:800;color:var(--aqua);
        text-shadow:0 3px 0 #0b4a66;margin-top:8px;letter-spacing:3px;line-height:1.15}
   .lead{font-size:19px;line-height:1.5;margin:18px 0 6px;font-weight:500;opacity:.95;text-wrap:balance}
@@ -84,9 +84,9 @@
   #stats{font-size:21px;font-weight:700;margin-top:14px;color:var(--aqua)}
 
   /* ---------- corner buttons ---------- */
-  /* z-index 6, donc AU-DESSUS des écrans (titre, pause, victoire, z-index 5) :
-     c'est sur l'écran-titre qu'un visiteur cherche le bouton de langue, et il
-     s'y trouvait masqué. Le son devient réglable avant de plonger, au passage. */
+  /* z-index 6, so ABOVE the screens (title, pause, victory, z-index 5): the
+     title screen is exactly where a visitor looks for the language button, and
+     it was hidden there. Sound becomes adjustable before diving, at no cost. */
   #tools{position:fixed;right:14px;bottom:14px;display:flex;gap:9px;z-index:6}
   #btn-lang{padding:8px 10px;letter-spacing:.5px}
   #btn-lang span{opacity:.42;font-weight:700}
@@ -96,11 +96,11 @@
   #tools button.off{background:linear-gradient(#9fc0cc,#6d8f9d);color:#0d2b39;box-shadow:0 4px 0 #3f6472}
   button:focus-visible,#swim:focus-visible{outline:3px solid var(--aqua);outline-offset:3px}
   @media (prefers-reduced-motion:reduce){
-    /* le récif reste animé (c'est le jeu), mais l'interface arrête de bouger */
+    /* the reef keeps moving (it is the game), but the interface stops */
     .screen,button,#hint,#toast,#arrow,#vignette-flash,#loader{transition:none}
     button:hover{transform:none}
   }
-  /* ---------- dialogues et quêtes ---------- */
+  /* ---------- dialogue and quests ---------- */
   #dialog{position:absolute;left:50%;bottom:96px;transform:translateX(-50%) translateY(14px);
     width:min(680px,90vw);padding:16px 22px 14px;opacity:0;pointer-events:none;
     transition:opacity .25s,transform .25s}
@@ -132,16 +132,15 @@
     background:#03202f;font-size:20px;font-weight:600;color:#9fe8ff;transition:opacity .5s}
   #vignette-flash{position:fixed;inset:0;pointer-events:none;z-index:3;opacity:0;
     background:radial-gradient(120% 90% at 50% 50%,transparent 40%,rgba(190,90,255,.55));transition:opacity .25s}
-  /* ---------- surcharges d'écran étroit ----------------------------------
-     Ce bloc est dernier, et c'est structurel : à spécificité égale, c'est la
-     règle la plus basse qui gagne. Placé plus haut, il se faisait annuler par
-     les positions de `#dialog`, `#prompt` et `#journal` définies plus bas —
-     l'interface restait superposée sur téléphone sans qu'aucune règle n'ait
-     l'air fausse. */
+  /* ---------- narrow-screen overrides ------------------------------------
+     This block comes last, and that is structural: at equal specificity the
+     lowest rule wins. Placed any higher, it was cancelled by the positions of
+     `#dialog`, `#prompt` and `#journal` defined below it — the interface stayed
+     overlapped on a phone without a single rule looking wrong. */
   @media (max-width:760px){
-    /* Le bouton NAGER occupe les 126 premiers pixels du bas (18 de marge +
-       108 de diamètre) : la bulle passe au-dessus, et le dialogue au-dessus
-       d'elle. Mesuré, pas estimé — à 118 px les deux se recouvraient de 8 px. */
+    /* The SWIM button takes the first 126 pixels from the bottom (18 of margin
+       plus 108 of diameter): the bubble passes above it, and the dialogue above
+       that. Measured, not guessed — at 118 px the two overlapped by 8 px. */
     #hint{bottom:140px;font-size:15px;max-width:88vw;padding:8px 14px}
     #dialog{bottom:212px;padding:13px 16px 11px}
     #tools button{font-size:15px;padding:7px 11px;border-radius:12px}
@@ -151,12 +150,12 @@
     #pearls{font-size:15px}
   }
 
-  /* L'invite « parler à … » devient le bouton lui-même en tactile : au doigt il
-     n'y a pas de touche E, et ajouter un second gros bouton flottant aurait
-     encombré un écran déjà chargé.
-     Les deux cibles ne sont cliquables que *visibles* (`.on`) : invisibles mais
-     actives, une pilule au milieu de l'écran et une carte large en bas
-     avaleraient le glissé-pour-regarder sans que rien ne l'explique. */
+  /* The "talk to …" prompt becomes the button itself on touch: there is no E
+     key under a finger, and a second big floating button would have crowded an
+     already busy screen.
+     Both targets are clickable only while *visible* (`.on`): invisible but
+     active, a pill in the middle of the screen and a wide card at the bottom
+     would swallow the drag-to-look with nothing on screen to explain it. */
   body.touch #prompt{padding:11px 20px;font-size:17px;
     background:linear-gradient(#ffd08a,#ff7a4d);color:#3a1400;box-shadow:0 5px 0 #e2542a}
   body.touch #prompt.on{pointer-events:auto}

@@ -254,7 +254,7 @@ function applyI18n() {
 function setLang(code) {
   LANG.code = code;
   LANG.i = code === 'fr' ? 0 : 1;
-  try { localStorage.setItem('recif-lang', code); } catch (e) { /* tant pis */ }
+  try { localStorage.setItem('recif-lang', code); } catch (e) { /* no storage */ }
   applyI18n();
   loaderEl.textContent = T('ui.loading');
   if (typeof setQualityLabel === 'function' && $('#btn-quality')) setQualityLabel();

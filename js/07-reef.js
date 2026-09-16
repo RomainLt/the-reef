@@ -298,7 +298,7 @@ function buildReef() {
     endBatch();
   }
 
-  /* ---- 4. deux passerelles entre massifs proches ---- */
+  /* ---- 4. two bridges between nearby massifs ---- */
   var bridges = 0;
   for (var bi = 1; bi < massifs.length && bridges < 2; bi++) {
     for (var bj = bi + 1; bj < massifs.length && bridges < 2; bj++) {

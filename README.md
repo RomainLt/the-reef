@@ -255,3 +255,7 @@ __reef.U.uCurrent.value.set(3, 0)   // a storm (it settles again within seconds)
 __reef.SND.setCurrent(1.4, -1)      // a strong rush to the left, to hear the voice alone
 __reef.setLang('fr')                // switches at once, journal included
 ```
+
+## License
+
+MIT — see [LICENSE](LICENSE). three.js, loaded from a CDN, is MIT as well.

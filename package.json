@@ -19,6 +19,7 @@
     "procedural",
     "underwater"
   ],
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "node serve.mjs",

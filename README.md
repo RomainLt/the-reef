@@ -9,7 +9,8 @@ every surface is a `ShaderMaterial` written for this game.
 
 ## Running it
 
-Double-click `index.html` (or open it in your browser). That is all.
+Double-click `index.html` (or open it in your browser). That is all — the game runs
+straight off the file system, with no build step and no server.
 An internet connection is needed on first load: three.js and the font come from a CDN.
 
 ### Letting somebody on the same Wi-Fi play
@@ -63,8 +64,8 @@ Fixed text on the page carries a `data-i18n` attribute; everything else goes thr
 `T('key', { hole: value })`.
 
 The function is called `T` and not `t` because `t` is a local variable in fifty-three
-places in this file (time, interpolation, loop counter) — a global `t` would be shadowed
-there without a word of warning.
+places across these files (time, interpolation, loop counter) — a global `t` would be
+shadowed there without a word of warning.
 
 ## Controls
 
@@ -115,8 +116,24 @@ travel with the player): **the drop-off** into the open blue, **the kelp forest*
 
 ## What is under the hood
 
-Everything is in `index.html` (one file, no dependency to install). three.js is only a
-WebGL layer: the geometry and the shaders are written here.
+The game is one program cut into seventeen files under `js/`, loaded in order by
+`index.html`. They are **classic scripts**, not ES modules, and that is a deliberate
+choice: modules do not load over `file://` — silently — which would cost the
+double-click. Classic scripts share the global scope exactly as the code shared one
+closure before the split, so there is not a single `import` to write and the bodies are
+unchanged.
+
+The numeric prefix is the load order, and the only real constraint: `00-boot.js` defines
+`$`, the tunables and the language machinery, which a handful of later declarations use at
+load time. Everything else only declares things, so it is order-independent.
+
+`00-boot.js` also holds the three.js guard. A classic script cannot `return` at the top
+level, so it sets `REEF_READY`, and `index.html` injects the other sixteen files only if
+that flag is true (`async = false` keeps them in order). Without that, a failed CDN would
+still execute all sixteen and throw "THREE is not defined" sixteen times into the console.
+
+There is no dependency to install. three.js is only a WebGL layer: the geometry and the
+shaders are written here.
 
 **The rendering** aims at the look of the film's sets — not cel shading: no ink lines at
 all, everything rests on the softness of the light and the depth of the hollows.

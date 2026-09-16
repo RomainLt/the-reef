@@ -1,0 +1,11 @@
+{
+  "name": "the-reef",
+  "private": true,
+  "version": "1.0.0",
+  "description": "The Reef — a dive into a coral reef, in the browser",
+  "type": "module",
+  "scripts": {
+    "dev": "node serve.mjs",
+    "share": "node serve.mjs --host"
+  }
+}
